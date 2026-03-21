@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Details</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="container">
+    <div class="section-title-row">
+      <div class="num">01</div>
+      <div class="title">Fill in Your Details</div>
+      <div class="line"></div>
+    </div>
+
+    <div class="form-wrap">
+      <section class="form-card">
+        <h3>Fill this form up</h3>
+        <form class="form-grid" id="detailsForm" action="/fleet" method="get">
+          <div class="field">
+            <label>First name *</label>
+            <input name="first_name" placeholder="Enter your first name" required />
+          </div>
+          <div class="field">
+            <label>Last name*</label>
+            <input name="last_name" placeholder="Enter your last name" required />
+          </div>
+          <div class="field">
+            <label>Phone</label>
+            <input name="phone" placeholder="Enter your phone number" required />
+          </div>
+          <div class="field">
+            <label>City</label>
+            <input name="city" list="uae-cities" placeholder="Start typing your city" required />
+            <datalist id="uae-cities">
+              <option>Abu Dhabi</option>
+              <option>Al Ain</option>
+              <option>Dubai</option>
+              <option>Sharjah</option>
+              <option>Ajman</option>
+              <option>Umm Al Quwain</option>
+              <option>Ras Al Khaimah</option>
+              <option>Fujairah</option>
+              <option>Khor Fakkan</option>
+              <option>Kalba</option>
+              <option>Dibba Al-Fujairah</option>
+              <option>Dibba Al-Hisn</option>
+              <option>Al Dhaid</option>
+              <option>Al Madam</option>
+              <option>Hatta</option>
+              <option>Jebel Ali</option>
+              <option>Ruwais</option>
+              <option>Madinat Zayed</option>
+              <option>Liwa</option>
+              <option>Ghayathi</option>
+              <option>Mirfa</option>
+              <option>Al Sila</option>
+              <option>Al Jazirah Al Hamra</option>
+              <option>Rams</option>
+              <option>Khatt</option>
+              <option>Masafi</option>
+              <option>Qidfa</option>
+              <option>Al Bithnah</option>
+              <option>Manama</option>
+              <option>Masfout</option>
+              <option>Falaj Al Mualla</option>
+            </datalist>
+          </div>
+          <div class="field">
+            <label>Start date</label>
+            <input id="startDateInput" name="start_date" type="date" required />
+          </div>
+          <div class="field">
+            <label>End date</label>
+            <input id="endDateInput" name="end_date" type="date" required />
+          </div>
+          <button class="btn-outline" type="submit">Submit</button>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script>
+    const detailsForm = document.getElementById('detailsForm');
+    const startDateInput = document.getElementById('startDateInput');
+    const endDateInput = document.getElementById('endDateInput');
+
+    function todayIso() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    if (startDateInput && endDateInput) {
+      const minDate = todayIso();
+      startDateInput.min = minDate;
+      endDateInput.min = minDate;
+
+      startDateInput.addEventListener('change', () => {
+        endDateInput.min = startDateInput.value || minDate;
+        if (endDateInput.value && startDateInput.value && endDateInput.value < startDateInput.value) {
+          endDateInput.value = startDateInput.value;
+        }
+      });
+    }
+
+    if (detailsForm) {
+      detailsForm.addEventListener('submit', (event) => {
+        if (startDateInput && endDateInput) {
+          const minDate = todayIso();
+          if (startDateInput.value < minDate) {
+            event.preventDefault();
+            alert('Start date cannot be in the past.');
+            return;
+          }
+          if (endDateInput.value < startDateInput.value) {
+            event.preventDefault();
+            alert('End date cannot be before start date.');
+            return;
+          }
+        }
+        const formData = new FormData(detailsForm);
+        localStorage.setItem('first_name', formData.get('first_name') || '');
+        localStorage.setItem('last_name', formData.get('last_name') || '');
+        localStorage.setItem('phone', formData.get('phone') || '');
+        localStorage.setItem('city', formData.get('city') || '');
+        localStorage.setItem('start_date', formData.get('start_date') || '');
+        localStorage.setItem('end_date', formData.get('end_date') || '');
+      });
+    }
+  </script>
+{% include 'partials/yobo_chat.html' %}
+</body>
+</html>

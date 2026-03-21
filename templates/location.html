@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pick-up Location</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="container">
+    <div class="section-title-row">
+      <div class="num">04</div>
+      <div class="title">Choose the Pick-up Location</div>
+      <div class="line"></div>
+    </div>
+
+    <form class="location-layout" id="locationForm">
+      <div class="location-card">
+        <div class="field">
+          <label>Address*</label>
+          <input id="pickupAddress" name="address" placeholder="Enter Address" required />
+        </div>
+        <div class="field">
+          <label>Landmark (Optional)</label>
+          <input id="pickupLandmark" name="landmark" placeholder="Enter Address" />
+        </div>
+        <div class="field">
+          <label>Pincode*</label>
+          <input id="pickupPincode" name="pincode" placeholder="Enter Address" required />
+        </div>
+      </div>
+      <iframe
+        class="map-embed"
+        src="https://maps.google.com/maps?q=Dubai&t=&z=13&ie=UTF8&iwloc=&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        title="Map"
+      ></iframe>
+    </form>
+    <div class="location-actions">
+      <button class="btn-confirm" id="pickupNext" type="button">Next</button>
+    </div>
+  </main>
+  <script>
+    const locationParams = new URLSearchParams(window.location.search);
+    const locationPassthrough = {
+      biz_id: locationParams.get('biz_id') || localStorage.getItem('biz_id') || '',
+      first_name: locationParams.get('first_name') || localStorage.getItem('first_name') || '',
+      last_name: locationParams.get('last_name') || localStorage.getItem('last_name') || '',
+      phone: locationParams.get('phone') || localStorage.getItem('phone') || '',
+      city: locationParams.get('city') || localStorage.getItem('city') || '',
+      start_date: locationParams.get('start_date') || localStorage.getItem('start_date') || '',
+      end_date: locationParams.get('end_date') || localStorage.getItem('end_date') || '',
+      car_id: locationParams.get('car_id') || localStorage.getItem('car_id') || '',
+      car_make: locationParams.get('car_make') || locationParams.get('make') || localStorage.getItem('car_make') || '',
+      car_model: locationParams.get('car_model') || locationParams.get('model') || localStorage.getItem('car_model') || '',
+      price_per_day: locationParams.get('price_per_day') || localStorage.getItem('price_per_day') || '',
+      insurance: locationParams.get('insurance') || localStorage.getItem('insurance_plan') || 'No insurance',
+      insurance_price: locationParams.get('insurance_price') || localStorage.getItem('insurance_price') || '0',
+    };
+    Object.entries(locationPassthrough).forEach(([key, value]) => {
+      if (value) {
+        if (key === 'insurance') localStorage.setItem('insurance_plan', value);
+        else localStorage.setItem(key, value);
+      }
+    });
+
+    const locationForm = document.getElementById('locationForm');
+    const nextBtn = document.getElementById('pickupNext');
+    if (locationForm && nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (!locationForm.reportValidity()) {
+          return;
+        }
+
+        const address = document.getElementById('pickupAddress')?.value || '';
+        const landmark = document.getElementById('pickupLandmark')?.value || '';
+        const pincode = document.getElementById('pickupPincode')?.value || '';
+        const location = [address, landmark, pincode].filter(Boolean).join(', ');
+        localStorage.setItem('pickup_location', location);
+
+        const query = new URLSearchParams();
+        const values = {
+          biz_id: locationPassthrough.biz_id,
+          first_name: locationPassthrough.first_name,
+          last_name: locationPassthrough.last_name,
+          phone: locationPassthrough.phone,
+          city: locationPassthrough.city,
+          start_date: locationPassthrough.start_date,
+          end_date: locationPassthrough.end_date,
+          car_id: locationPassthrough.car_id,
+          car_make: locationPassthrough.car_make,
+          car_model: locationPassthrough.car_model,
+          price_per_day: locationPassthrough.price_per_day,
+          insurance: locationPassthrough.insurance,
+          insurance_price: locationPassthrough.insurance_price,
+          address,
+          landmark,
+          pincode,
+        };
+        Object.entries(values).forEach(([key, value]) => {
+          if (value) {
+            query.set(key, value);
+          }
+        });
+        window.location.href = `/summary?${query.toString()}`;
+      });
+    }
+  </script>
+{% include 'partials/yobo_chat.html' %}
+</body>
+</html>

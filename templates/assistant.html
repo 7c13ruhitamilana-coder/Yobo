@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assistant</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body class="assistant-page">
+  <main class="container">
+    <div class="center-wrap">
+      {% include 'partials/yobo_assistant_card.html' %}
+    </div>
+  </main>
+{% include 'partials/yobo_chat.html' %}
+</body>
+</html>

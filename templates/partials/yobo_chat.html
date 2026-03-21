@@ -1,0 +1,12 @@
+<div class="yobo-chat" aria-live="polite">
+  <div class="yobo-panel" id="yoboPanel" aria-hidden="true">
+    <div class="yobo-header">Yobo</div>
+    <div class="yobo-messages" id="yoboMessages"></div>
+    <form class="yobo-form" id="yoboForm">
+      <input class="yobo-input" id="yoboInput" placeholder="Ask Yobo..." autocomplete="off" />
+      <button class="yobo-send" type="submit">Send</button>
+    </form>
+  </div>
+  <button class="yobo-toggle" id="yoboToggle" type="button">Yobo</button>
+</div>
+<script src="{{ url_for('static', filename='chat.js') }}"></script>

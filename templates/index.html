@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Car Rentals</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="container">
+    <nav class="nav">
+      <div class="logo">
+        <svg viewBox="0 0 64 32" aria-hidden="true">
+          <path d="M6 22c6-9 14-14 26-14s20 5 26 14" fill="none" stroke="#111" stroke-width="2" />
+          <circle cx="16" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
+          <circle cx="48" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
+        </svg>
+        <span>Smart Car Rentals</span>
+      </div>
+      <div class="menu">
+        <a class="active" href="/">Home</a>
+        <a href="/fleet">Our Fleet</a>
+        <a href="/insurance">Insurance</a>
+      </div>
+      <div></div>
+    </nav>
+
+    <section class="hero">
+      <h1>Rent Your Dream Drive in Seconds.</h1>
+      <p>
+        From sleek city sedans to spacious family SUVs, we have the perfect ride for every journey.
+        Transparent pricing. No hidden fees. Just the open road.
+      </p>
+      <a class="btn-pill" href="/assistant">
+        Get started now
+        <span class="arrow">&#8594;</span>
+      </a>
+    </section>
+  </main>
+{% include 'partials/yobo_chat.html' %}
+</body>
+</html>

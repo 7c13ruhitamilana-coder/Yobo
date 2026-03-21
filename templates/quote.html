@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instant AI Quotation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="container center-viewport">
+    <section class="quote-layout">
+      <div class="quote-left">
+        <h2>Instant AI
+          <br />Quotation</h2>
+        <p>Automate your fleet booking in seconds with our intelligent rental engine.</p>
+        <a class="btn-outline" id="quoteNext" href="/insurance">Next</a>
+      </div>
+      <div class="quote-card">
+        <div class="top">
+          <div>Smart Quote Engine</div>
+          <div class="quote-pill">AI ACTIVE</div>
+        </div>
+        <div class="quote-divider"></div>
+        <div class="quote-fields">
+          <div class="quote-field">
+            <label>Pickup Location</label>
+            <div class="quote-input">Dubai</div>
+          </div>
+          <div class="quote-field">
+            <label>Vehicle Category</label>
+            <div class="quote-input">Luxury Sedan</div>
+          </div>
+        </div>
+        <div class="quote-total">
+          <div>
+            <div class="label">Estimated Total</div>
+            <div class="amount">$124.50 <small>per day</small></div>
+          </div>
+          <a class="btn-black" id="quoteConfirm" href="/insurance">Confirm</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const quoteParams = new URLSearchParams(window.location.search);
+    const quoteBizId = quoteParams.get('biz_id') || localStorage.getItem('biz_id') || '';
+    if (quoteBizId) localStorage.setItem('biz_id', quoteBizId);
+    const make = quoteParams.get('make') || '';
+    const model = quoteParams.get('model') || '';
+    const price = quoteParams.get('price_per_day') || '';
+    const carId = quoteParams.get('car_id') || '';
+    if (make) localStorage.setItem('car_make', make);
+    if (model) localStorage.setItem('car_model', model);
+    if (price) localStorage.setItem('price_per_day', price);
+    if (carId) localStorage.setItem('car_id', carId);
+
+    function buildInsuranceHref() {
+      const query = new URLSearchParams();
+      const values = {
+        biz_id: localStorage.getItem('biz_id') || '',
+        first_name: localStorage.getItem('first_name') || '',
+        last_name: localStorage.getItem('last_name') || '',
+        phone: localStorage.getItem('phone') || '',
+        city: localStorage.getItem('city') || '',
+        start_date: localStorage.getItem('start_date') || '',
+        end_date: localStorage.getItem('end_date') || '',
+        car_id: localStorage.getItem('car_id') || '',
+        make: localStorage.getItem('car_make') || '',
+        model: localStorage.getItem('car_model') || '',
+        price_per_day: localStorage.getItem('price_per_day') || '',
+      };
+      Object.entries(values).forEach(([key, value]) => {
+        if (value) query.set(key, value);
+      });
+      return `/insurance?${query.toString()}`;
+    }
+
+    document.getElementById('quoteNext').href = buildInsuranceHref();
+    document.getElementById('quoteConfirm').href = buildInsuranceHref();
+  </script>
+{% include 'partials/yobo_chat.html' %}
+</body>
+</html>

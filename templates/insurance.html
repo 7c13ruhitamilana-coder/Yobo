@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Insurance</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="container">
+    <div class="section-title-row">
+      <div class="num">03</div>
+      <div class="title">Pick an Insurance Plan</div>
+      <div class="line"></div>
+    </div>
+
+    <section class="insurance-grid">
+      <article class="insurance-card" data-plan="Protection Plan - Basic" data-price="150" role="button" tabindex="0" aria-pressed="false">
+        <h3>Protection Plan-<br />Basic</h3>
+        <div class="insurance-inner">
+          <div class="insurance-price">AED 150 <span style="font-size:12px; font-family: 'Poppins', sans-serif;">Per Month</span></div>
+          <div class="insurance-list">- 50% Accident Coverage</div>
+        </div>
+      </article>
+      <article class="insurance-card" data-plan="Protection Plan - Plus" data-price="450" role="button" tabindex="0" aria-pressed="false">
+        <h3>Protection Plan-<br />Plus</h3>
+        <div class="insurance-inner">
+          <div class="insurance-price">AED 450 <span style="font-size:12px; font-family: 'Poppins', sans-serif;">Per Month</span></div>
+          <div class="insurance-list">- 100% Accident Coverage<br />- Windshield Damage<br />- Tyre Damages</div>
+        </div>
+      </article>
+      <article class="insurance-card" data-plan="Protection Plan - Premium" data-price="650" role="button" tabindex="0" aria-pressed="false">
+        <h3>Protection Plan-<br />Premium</h3>
+        <div class="insurance-inner">
+          <div class="insurance-price">AED 650 <span style="font-size:12px; font-family: 'Poppins', sans-serif;">Per Month</span></div>
+          <div class="insurance-list">- 100% Accident Coverage<br />- Windshield Damage<br />- Tyre Damages<br />- Lost Keys<br />- Rim Damage</div>
+        </div>
+      </article>
+    </section>
+
+    <div class="insurance-actions">
+      <div></div>
+      <a class="btn-skip" id="skipInsurance" href="/location">No, let's skip it</a>
+      <a class="btn-continue" id="continueInsurance" href="/location">Continue Booking</a>
+    </div>
+  </main>
+  <script>
+    const insuranceParams = new URLSearchParams(window.location.search);
+    const passthroughKeys = [
+      'biz_id',
+      'first_name',
+      'last_name',
+      'phone',
+      'city',
+      'start_date',
+      'end_date',
+      'car_id',
+      'make',
+      'model',
+      'price_per_day',
+    ];
+    passthroughKeys.forEach((key) => {
+      const value = insuranceParams.get(key);
+      if (value) {
+        if (key === 'make') localStorage.setItem('car_make', value);
+        else if (key === 'model') localStorage.setItem('car_model', value);
+        else localStorage.setItem(key, value);
+      }
+    });
+
+    const cards = Array.from(document.querySelectorAll('.insurance-card'));
+    const skipBtn = document.getElementById('skipInsurance');
+    const continueBtn = document.getElementById('continueInsurance');
+
+    function buildLocationHref(plan, price) {
+      const query = new URLSearchParams();
+      const values = {
+        biz_id: localStorage.getItem('biz_id') || '',
+        first_name: localStorage.getItem('first_name') || '',
+        last_name: localStorage.getItem('last_name') || '',
+        phone: localStorage.getItem('phone') || '',
+        city: localStorage.getItem('city') || '',
+        start_date: localStorage.getItem('start_date') || '',
+        end_date: localStorage.getItem('end_date') || '',
+        car_id: localStorage.getItem('car_id') || '',
+        car_make: localStorage.getItem('car_make') || '',
+        car_model: localStorage.getItem('car_model') || '',
+        price_per_day: localStorage.getItem('price_per_day') || '',
+        insurance: plan,
+        insurance_price: price,
+      };
+      Object.entries(values).forEach(([key, value]) => {
+        if (value) query.set(key, value);
+      });
+      return `/location?${query.toString()}`;
+    }
+
+    function setSelected(card) {
+      cards.forEach((item) => {
+        item.classList.toggle('selected', item === card);
+        item.setAttribute('aria-pressed', item === card ? 'true' : 'false');
+      });
+      if (card) {
+        const plan = card.dataset.plan || '';
+        const price = card.dataset.price || '';
+        localStorage.setItem('insurance_plan', plan);
+        localStorage.setItem('insurance_price', price);
+      }
+    }
+
+    cards.forEach((card) => {
+      card.addEventListener('click', () => setSelected(card));
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          setSelected(card);
+        }
+      });
+    });
+
+    const savedPlan = localStorage.getItem('insurance_plan');
+    if (savedPlan) {
+      const savedCard = cards.find((card) => card.dataset.plan === savedPlan);
+      if (savedCard) {
+        setSelected(savedCard);
+      }
+    }
+
+    skipBtn.addEventListener('click', () => {
+      localStorage.setItem('insurance_plan', 'No insurance');
+      localStorage.setItem('insurance_price', '0');
+      skipBtn.href = buildLocationHref('No insurance', '0');
+    });
+
+    continueBtn.addEventListener('click', (event) => {
+      let plan = localStorage.getItem('insurance_plan') || '';
+      let price = localStorage.getItem('insurance_price') || '';
+      if (!plan) {
+        plan = 'No insurance';
+        price = '0';
+        localStorage.setItem('insurance_plan', plan);
+        localStorage.setItem('insurance_price', price);
+      }
+      continueBtn.href = buildLocationHref(plan, price);
+    });
+  </script>
+{% include 'partials/yobo_chat.html' %}
+</body>
+</html>

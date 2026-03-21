@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Booking Summary</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="container center-viewport">
+    <div class="summary-wrap">
+      <div>
+        <div class="summary-box">
+          <h2>Booking Summary</h2>
+          <div class="summary-row"><span>Vehicle</span><span id="summaryVehicle">-</span></div>
+          <div class="summary-row"><span>Duration</span><span id="summaryDays">-</span></div>
+          <div class="summary-row"><span>Pick-up</span><span id="summaryLocation">-</span></div>
+          <div class="summary-divider"></div>
+          <div class="summary-row"><span>Base Rental</span><span id="summaryBase">AED 0</span></div>
+          <div class="summary-row"><span>Insurance fee</span><span id="summaryInsurance">AED 0</span></div>
+          <div class="summary-row"><span>Processing fee</span><span id="summaryProcessing">AED 50</span></div>
+          <div class="summary-divider"></div>
+          <div class="summary-row"><strong>Subtotal</strong><span id="summarySubtotal">AED 0</span></div>
+          <div class="summary-row"><span>VAT (5%)</span><span id="summaryVat">AED 0</span></div>
+          <div class="summary-divider"></div>
+          <div class="summary-row summary-total"><span>TOTAL</span><span id="summaryTotal">AED 0</span></div>
+        </div>
+        <div class="summary-actions">
+          <button class="btn-confirm" id="confirmBooking" type="button">Confirm Booking</button>
+        </div>
+        <div class="summary-status" id="bookingStatus"></div>
+      </div>
+    </div>
+  </main>
+  <script>
+    function parseDate(value) {
+      if (!value) return null;
+      const parts = value.split('-');
+      if (parts.length !== 3) return null;
+      return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    }
+
+    function formatAED(amount) {
+      const value = Number.isFinite(amount) ? amount : 0;
+      return `AED ${value.toLocaleString()}`;
+    }
+
+    const query = new URLSearchParams(window.location.search);
+    const queryLocationParts = [
+      query.get('address'),
+      query.get('landmark'),
+      query.get('pincode'),
+    ].filter(Boolean);
+    const queryLocation = queryLocationParts.join(', ');
+    const queryMap = [
+      ['biz_id', query.get('biz_id')],
+      ['first_name', query.get('first_name')],
+      ['last_name', query.get('last_name')],
+      ['phone', query.get('phone')],
+      ['car_id', query.get('car_id')],
+      ['car_make', query.get('car_make')],
+      ['car_model', query.get('car_model')],
+      ['price_per_day', query.get('price_per_day')],
+      ['start_date', query.get('start_date')],
+      ['end_date', query.get('end_date')],
+      ['city', query.get('city')],
+      ['insurance_plan', query.get('insurance')],
+      ['insurance_price', query.get('insurance_price')],
+    ];
+    queryMap.forEach(([key, value]) => {
+      if (value) localStorage.setItem(key, value);
+    });
+    if (queryLocation) {
+      localStorage.setItem('pickup_location', queryLocation);
+    }
+
+    const carMake = localStorage.getItem('car_make') || '';
+    const carModel = localStorage.getItem('car_model') || '';
+    const vehicleLabel = [carMake, carModel].filter(Boolean).join(' ');
+    document.getElementById('summaryVehicle').textContent = vehicleLabel || '-';
+
+    const startDate = parseDate(localStorage.getItem('start_date'));
+    const endDate = parseDate(localStorage.getItem('end_date'));
+    let days = 1;
+    if (startDate && endDate) {
+      const diff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      days = Math.max(diff, 1);
+    }
+    document.getElementById('summaryDays').textContent = `${days} day(s)`;
+
+    const pickupLocationLabel = localStorage.getItem('pickup_location') || localStorage.getItem('city') || '-';
+    document.getElementById('summaryLocation').textContent = pickupLocationLabel;
+
+    const pricePerDay = Number(localStorage.getItem('price_per_day') || 0);
+    const baseRental = pricePerDay * days;
+    document.getElementById('summaryBase').textContent = formatAED(baseRental);
+
+    const insuranceFee = Number(localStorage.getItem('insurance_price') || 0);
+    document.getElementById('summaryInsurance').textContent = formatAED(insuranceFee);
+
+    const processingFee = 50;
+    document.getElementById('summaryProcessing').textContent = formatAED(processingFee);
+
+    const subtotal = baseRental + insuranceFee + processingFee;
+    document.getElementById('summarySubtotal').textContent = formatAED(subtotal);
+
+    const vat = subtotal * 0.05;
+    document.getElementById('summaryVat').textContent = formatAED(Math.round(vat));
+
+    const total = subtotal + vat;
+    const totalRounded = Math.round(total);
+    document.getElementById('summaryTotal').textContent = formatAED(totalRounded);
+    localStorage.setItem('total_price', totalRounded.toString());
+
+    const confirmBtn = document.getElementById('confirmBooking');
+    const statusEl = document.getElementById('bookingStatus');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', async () => {
+        const first = query.get('first_name') || localStorage.getItem('first_name') || '';
+        const last = query.get('last_name') || localStorage.getItem('last_name') || '';
+        const phone = query.get('phone') || localStorage.getItem('phone') || '';
+        const city = query.get('city') || localStorage.getItem('city') || '';
+        const carId = query.get('car_id') || localStorage.getItem('car_id') || '';
+        const insurance = query.get('insurance') || localStorage.getItem('insurance_plan') || 'No insurance';
+        const start = query.get('start_date') || localStorage.getItem('start_date') || '';
+        const end = query.get('end_date') || localStorage.getItem('end_date') || '';
+        const locationValue = queryLocation || localStorage.getItem('pickup_location') || '';
+        const customerName = `${first} ${last}`.trim();
+
+        if (!customerName || !phone || !city || !carId || !start || !end || !locationValue) {
+          if (statusEl) {
+            statusEl.textContent = 'Please complete all steps before confirming.';
+            statusEl.className = 'summary-status error';
+          }
+          return;
+        }
+
+        const payload = {
+          biz_id: query.get('biz_id') || localStorage.getItem('biz_id') || '',
+          customer_name: customerName,
+          phone,
+          total_price: totalRounded,
+          start_date: start,
+          end_date: end,
+          city,
+          car_id: carId,
+          location: locationValue,
+          insurance,
+        };
+
+        try {
+          confirmBtn.disabled = true;
+          if (statusEl) {
+            statusEl.textContent = 'Saving booking...';
+            statusEl.className = 'summary-status pending';
+          }
+          const res = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json();
+          if (data.ok) {
+            if (statusEl) {
+              statusEl.textContent = 'Booking confirmed!';
+              statusEl.className = 'summary-status success';
+            }
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 1200);
+            return;
+          }
+          if (statusEl) {
+            statusEl.textContent = data.error || 'Booking failed.';
+            statusEl.className = 'summary-status error';
+          }
+        } catch (err) {
+          if (statusEl) {
+            statusEl.textContent = 'Booking failed. Please try again.';
+            statusEl.className = 'summary-status error';
+          }
+        } finally {
+          confirmBtn.disabled = false;
+        }
+      });
+    }
+  </script>
+{% include 'partials/yobo_chat.html' %}
+</body>
+</html>

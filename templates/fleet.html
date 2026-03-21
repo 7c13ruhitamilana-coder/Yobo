@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Our Fleet</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="container">
+    <div class="section-title-row">
+      <div class="num">02</div>
+      <div class="title">Pick Your Dream Car</div>
+      <div class="line"></div>
+    </div>
+
+    <section class="fleet-grid" id="fleetGrid"></section>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const bizId = params.get('biz_id') || '';
+    const startFromQuery = params.get('start_date') || '';
+    const endFromQuery = params.get('end_date') || '';
+    if (startFromQuery) localStorage.setItem('start_date', startFromQuery);
+    if (endFromQuery) localStorage.setItem('end_date', endFromQuery);
+    const firstFromQuery = params.get('first_name') || '';
+    const lastFromQuery = params.get('last_name') || '';
+    const phoneFromQuery = params.get('phone') || '';
+    const cityFromQuery = params.get('city') || '';
+    if (firstFromQuery) localStorage.setItem('first_name', firstFromQuery);
+    if (lastFromQuery) localStorage.setItem('last_name', lastFromQuery);
+    if (phoneFromQuery) localStorage.setItem('phone', phoneFromQuery);
+    if (cityFromQuery) localStorage.setItem('city', cityFromQuery);
+
+    function buildFlowQuery(extra = {}) {
+      const query = new URLSearchParams();
+      const base = {
+        biz_id: bizId || localStorage.getItem('biz_id') || '',
+        first_name: localStorage.getItem('first_name') || '',
+        last_name: localStorage.getItem('last_name') || '',
+        phone: localStorage.getItem('phone') || '',
+        city: localStorage.getItem('city') || '',
+        start_date: localStorage.getItem('start_date') || '',
+        end_date: localStorage.getItem('end_date') || '',
+        ...extra,
+      };
+      Object.entries(base).forEach(([key, value]) => {
+        if (value) query.set(key, value);
+      });
+      return query.toString();
+    }
+
+    function cardHTML(car) {
+      const img = (car.photo_url || '').trim() || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop';
+      const priceValue = Number(car.price_per_day || 0);
+      const priceLabel = priceValue ? priceValue.toLocaleString() : '-';
+      const href = `/quote?${buildFlowQuery({
+        make: car.make || '',
+        model: car.model || '',
+        price_per_day: priceValue,
+        car_id: car.id || '',
+      })}`;
+      return `
+        <article class="fleet-card">
+          <div class="fleet-image">
+            <img src="${img}" alt="${car.make || 'Car'}" />
+          </div>
+          <div class="fleet-meta">
+            <div>Make: ${car.make || '-'}</div>
+            <div>Model: ${car.model || '-'}</div>
+            <div>Price/Day: AED ${priceLabel}</div>
+          </div>
+          <a class="fleet-select" href="${href}" data-id="${car.id || ''}" data-make="${car.make || ''}" data-model="${car.model || ''}" data-price="${car.price_per_day || ''}">Select</a>
+        </article>
+      `;
+    }
+
+    async function loadFleet() {
+      const startDate = localStorage.getItem('start_date') || '';
+      const endDate = localStorage.getItem('end_date') || '';
+      const query = new URLSearchParams();
+      if (bizId) query.set('biz_id', bizId);
+      if (startDate && endDate) {
+        query.set('start_date', startDate);
+        query.set('end_date', endDate);
+      }
+      const res = await fetch(`/api/fleet?${query.toString()}`);
+      const data = await res.json();
+      const fleet = data.data || [];
+      const grid = document.getElementById('fleetGrid');
+      if (!fleet.length) {
+        grid.innerHTML = '<div>No available cars found.</div>';
+        return;
+      }
+      grid.innerHTML = fleet.map(cardHTML).join('');
+    }
+
+    loadFleet();
+
+    const grid = document.getElementById('fleetGrid');
+    grid.addEventListener('click', (event) => {
+      const btn = event.target.closest('.fleet-select');
+      if (!btn) return;
+      event.preventDefault();
+      if (bizId) localStorage.setItem('biz_id', bizId);
+      localStorage.setItem('car_id', btn.dataset.id || '');
+      localStorage.setItem('car_make', btn.dataset.make || '');
+      localStorage.setItem('car_model', btn.dataset.model || '');
+      localStorage.setItem('price_per_day', btn.dataset.price || '');
+      window.location.href = btn.getAttribute('href');
+    });
+  </script>
+{% include 'partials/yobo_chat.html' %}
+</body>
+</html>
