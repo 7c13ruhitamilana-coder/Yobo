@@ -309,6 +309,11 @@ def index() -> str:
 
 @app.route("/assistant")
 def assistant() -> str:
+    return render_template("assistant_flow.html")
+
+
+@app.route("/assistant-classic")
+def assistant_classic() -> str:
     return render_template("assistant.html")
 
 
@@ -633,4 +638,4 @@ def api_bookings():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8503, debug=True)
+    app.run(host="0.0.0.0", port=8504, debug=True)

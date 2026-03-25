@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Book With Yobo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body class="assistant-flow-page">
+  <main class="assistant-flow-shell">
+    <nav class="nav">
+      <div class="logo">
+        <svg viewBox="0 0 64 32" aria-hidden="true">
+          <path d="M6 22c6-9 14-14 26-14s20 5 26 14" fill="none" stroke="#111" stroke-width="2" />
+          <circle cx="16" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
+          <circle cx="48" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
+        </svg>
+        <span>Smart Car Rentals</span>
+      </div>
+      <div class="menu">
+        <a href="/">Home</a>
+        <a class="active" href="/assistant">Book With Yobo</a>
+        <a href="/assistant-classic">Classic Assistant</a>
+      </div>
+      <div></div>
+    </nav>
+
+    <section class="assistant-flow-header">
+      <div>
+        <p class="assistant-flow-kicker">AI Booking Concierge</p>
+        <h1>Book your rental in one guided conversation.</h1>
+        <p class="assistant-flow-subtitle">
+          Yobo will take the customer through details, live fleet availability, pickup location, insurance, and confirmation in sequence.
+        </p>
+      </div>
+    </section>
+
+    <section class="assistant-flow-board">
+      <div class="assistant-flow-thread" id="assistantFlowThread"></div>
+    </section>
+
+    <form class="assistant-flow-composer" id="assistantFlowComposer">
+      <input
+        class="assistant-flow-input"
+        id="assistantFlowInput"
+        type="text"
+        placeholder="Ask Yobo about dates, budgets, or available cars..."
+        autocomplete="off"
+      />
+      <button class="btn-black" type="submit">Send</button>
+    </form>
+  </main>
+
+  <script src="{{ url_for('static', filename='assistant_flow.js') }}"></script>
+</body>
+</html>
