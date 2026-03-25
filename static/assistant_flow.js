@@ -2,7 +2,6 @@
   const thread = document.getElementById('assistantFlowThread');
   const composerForm = document.getElementById('assistantFlowComposer');
   const composerInput = document.getElementById('assistantFlowInput');
-  const restartButton = document.getElementById('restartFlow');
   const params = new URLSearchParams(window.location.search);
 
   const state = {
@@ -134,6 +133,9 @@
     if (!card) return;
     card.classList.add('is-complete');
     card.querySelectorAll('input, button, select').forEach((element) => {
+      if (element.dataset.keepEnabled === 'true') {
+        return;
+      }
       element.disabled = true;
     });
   }
@@ -543,15 +545,30 @@
         <div class="assistant-flow-summary-row"><span>VAT (5%)</span><span>${formatAED(values.vat)}</span></div>
         <div class="assistant-flow-summary-divider"></div>
         <div class="assistant-flow-summary-row total"><strong>TOTAL</strong><span>${formatAED(values.total)}</span></div>
-        <div class="assistant-flow-card-actions">
+        <div class="assistant-flow-card-actions center">
           <button class="btn-black" id="assistantConfirmBooking" type="button">Confirm Booking</button>
         </div>
         <div class="summary-status" id="assistantConfirmStatus"></div>
+        <div class="assistant-flow-card-actions center assistant-flow-summary-restart-row">
+          <button
+            class="btn-outline assistant-flow-summary-restart"
+            id="summaryRestartFlow"
+            data-keep-enabled="true"
+            type="button"
+          >
+            Restart
+          </button>
+        </div>
       </div>
     `;
 
     const confirmButton = document.getElementById('assistantConfirmBooking');
     const status = document.getElementById('assistantConfirmStatus');
+    const restartSummaryButton = document.getElementById('summaryRestartFlow');
+
+    if (restartSummaryButton) {
+      restartSummaryButton.addEventListener('click', resetFlow);
+    }
 
     confirmButton.addEventListener('click', async () => {
       const payload = {
@@ -685,6 +702,5 @@
     await sendAiMessage(text);
   });
 
-  restartButton.addEventListener('click', resetFlow);
   resetFlow();
 })();

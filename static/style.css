@@ -999,9 +999,14 @@ h1, h2, h3, .serif {
   gap: 14px;
 }
 
+.assistant-flow-card-actions.center {
+  justify-content: center;
+}
+
 .assistant-flow-card-actions.between {
   justify-content: space-between;
   align-items: center;
+  margin-top: 24px;
 }
 
 .assistant-flow-loading,
@@ -1106,6 +1111,16 @@ h1, h2, h3, .serif {
   border: 1px solid #efe3e3;
   border-radius: 24px;
   padding: 24px;
+}
+
+.assistant-flow-summary-restart-row {
+  margin-top: 10px;
+}
+
+.assistant-flow-summary-restart {
+  margin-top: 0;
+  background: #fff;
+  cursor: pointer;
 }
 
 .assistant-flow-summary-row {
