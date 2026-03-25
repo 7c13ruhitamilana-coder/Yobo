@@ -1,4 +1,6 @@
-.idea/
+.venv/
 __pycache__/
 *.pyc
 secrets.toml
+.idea/
+.DS_Store
