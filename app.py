@@ -638,4 +638,6 @@ def api_bookings():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8504, debug=True)
+    port = int(os.getenv("PORT", "8504"))
+    debug = os.getenv("FLASK_DEBUG", "1") == "1"
+    app.run(host="0.0.0.0", port=port, debug=debug)
