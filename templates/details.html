@@ -17,7 +17,7 @@
     <div class="form-wrap">
       <section class="form-card">
         <h3>Fill this form up</h3>
-        <form class="form-grid" id="detailsForm" action="/fleet" method="get">
+        <form class="form-grid" id="detailsForm" action="/assistant" method="get">
           <div class="field">
             <label>First name *</label>
             <input name="first_name" placeholder="Enter your first name" required />
@@ -30,100 +30,24 @@
             <label>Phone</label>
             <input name="phone" placeholder="Enter your phone number" required />
           </div>
-          <div class="field">
-            <label>City</label>
-            <input name="city" list="uae-cities" placeholder="Start typing your city" required />
-            <datalist id="uae-cities">
-              <option>Abu Dhabi</option>
-              <option>Al Ain</option>
-              <option>Dubai</option>
-              <option>Sharjah</option>
-              <option>Ajman</option>
-              <option>Umm Al Quwain</option>
-              <option>Ras Al Khaimah</option>
-              <option>Fujairah</option>
-              <option>Khor Fakkan</option>
-              <option>Kalba</option>
-              <option>Dibba Al-Fujairah</option>
-              <option>Dibba Al-Hisn</option>
-              <option>Al Dhaid</option>
-              <option>Al Madam</option>
-              <option>Hatta</option>
-              <option>Jebel Ali</option>
-              <option>Ruwais</option>
-              <option>Madinat Zayed</option>
-              <option>Liwa</option>
-              <option>Ghayathi</option>
-              <option>Mirfa</option>
-              <option>Al Sila</option>
-              <option>Al Jazirah Al Hamra</option>
-              <option>Rams</option>
-              <option>Khatt</option>
-              <option>Masafi</option>
-              <option>Qidfa</option>
-              <option>Al Bithnah</option>
-              <option>Manama</option>
-              <option>Masfout</option>
-              <option>Falaj Al Mualla</option>
-            </datalist>
+          <div class="field field-span-2">
+            <label>Next</label>
+            <input value="City and schedule will be confirmed with Yobo in the next step." disabled />
           </div>
-          <div class="field">
-            <label>Start date</label>
-            <input id="startDateInput" name="start_date" type="date" required />
-          </div>
-          <div class="field">
-            <label>End date</label>
-            <input id="endDateInput" name="end_date" type="date" required />
-          </div>
-          <button class="btn-outline" type="submit">Submit</button>
+          <button class="btn-outline" type="submit">Continue with Yobo</button>
         </form>
       </section>
     </div>
   </main>
   <script>
     const detailsForm = document.getElementById('detailsForm');
-    const startDateInput = document.getElementById('startDateInput');
-    const endDateInput = document.getElementById('endDateInput');
-
-    function todayIso() {
-      return new Date().toISOString().split('T')[0];
-    }
-
-    if (startDateInput && endDateInput) {
-      const minDate = todayIso();
-      startDateInput.min = minDate;
-      endDateInput.min = minDate;
-
-      startDateInput.addEventListener('change', () => {
-        endDateInput.min = startDateInput.value || minDate;
-        if (endDateInput.value && startDateInput.value && endDateInput.value < startDateInput.value) {
-          endDateInput.value = startDateInput.value;
-        }
-      });
-    }
 
     if (detailsForm) {
-      detailsForm.addEventListener('submit', (event) => {
-        if (startDateInput && endDateInput) {
-          const minDate = todayIso();
-          if (startDateInput.value < minDate) {
-            event.preventDefault();
-            alert('Start date cannot be in the past.');
-            return;
-          }
-          if (endDateInput.value < startDateInput.value) {
-            event.preventDefault();
-            alert('End date cannot be before start date.');
-            return;
-          }
-        }
+      detailsForm.addEventListener('submit', () => {
         const formData = new FormData(detailsForm);
         localStorage.setItem('first_name', formData.get('first_name') || '');
         localStorage.setItem('last_name', formData.get('last_name') || '');
         localStorage.setItem('phone', formData.get('phone') || '');
-        localStorage.setItem('city', formData.get('city') || '');
-        localStorage.setItem('start_date', formData.get('start_date') || '');
-        localStorage.setItem('end_date', formData.get('end_date') || '');
       });
     }
   </script>

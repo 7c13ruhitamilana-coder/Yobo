@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+import socket
 import os
 from pathlib import Path
 import re
@@ -152,23 +153,42 @@ def fetch_fleet_from_supabase(biz_id: str) -> tuple[list[dict[str, Any]], bool, 
         "Authorization": f"Bearer {supabase_key}",
         "Content-Type": "application/json",
     }
-    params = {
-        "select": "id,make,model,price_per_day,available,photo_url",
-        "available": "eq.true",
-    }
-    if biz_id:
-        params["biz_id"] = f"eq.{biz_id}"
+    def attempt(select_fields: str) -> tuple[list[dict[str, Any]] | None, str | None]:
+        params = {
+            "select": select_fields,
+            "available": "eq.true",
+        }
+        if biz_id:
+            params["biz_id"] = f"eq.{biz_id}"
 
-    try:
-        response = requests.get(endpoint, headers=headers, params=params, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            if not isinstance(data, list):
-                return [], False, "Unexpected fleet response format."
-            return data, False, None
-        return [], False, f"Supabase response {response.status_code}: {response.text}"
-    except Exception as exc:
-        return [], False, f"Supabase error: {exc}"
+        try:
+            response = requests.get(endpoint, headers=headers, params=params, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if not isinstance(data, list):
+                    return None, "Unexpected fleet response format."
+                return data, None
+            return None, f"Supabase response {response.status_code}: {response.text}"
+        except Exception as exc:
+            return None, f"Supabase error: {exc}"
+
+    extended_select = "id,make,model,price_per_day,available,photo_url,color,luxury"
+    luxury_select = "id,make,model,price_per_day,available,photo_url,luxury"
+    basic_select = "id,make,model,price_per_day,available,photo_url"
+
+    data, error = attempt(extended_select)
+    if data is not None:
+        return data, False, None
+
+    luxury_data, luxury_error = attempt(luxury_select)
+    if luxury_data is not None:
+        return luxury_data, False, None
+
+    fallback_data, fallback_error = attempt(basic_select)
+    if fallback_data is not None:
+        return fallback_data, False, None
+
+    return [], False, error or luxury_error or fallback_error
 
 
 def fetch_insurance_from_supabase(biz_id: str) -> list[dict[str, Any]]:
@@ -359,6 +379,7 @@ def api_fleet():
     biz_id = request.args.get("biz_id", "").strip() or get_default_biz_id()
     start_raw = request.args.get("start_date", "").strip()
     end_raw = request.args.get("end_date", "").strip()
+    luxury_raw = request.args.get("luxury", "").strip().lower()
     data, demo, error = fetch_fleet_from_supabase(biz_id)
 
     try:
@@ -371,6 +392,23 @@ def api_fleet():
     if start_date and end_date:
         booked_ids = fetch_booked_car_ids(biz_id, start_date, end_date)
         data = [car for car in data if str(car.get("id")) not in booked_ids]
+
+    if luxury_raw and any(car.get("luxury") is not None for car in data):
+        def normalize_luxury(value: Any) -> str:
+            if isinstance(value, bool):
+                return "luxury" if value else "standard"
+            lowered = str(value or "").strip().lower()
+            if lowered in {"true", "1", "yes", "luxury"}:
+                return "luxury"
+            if lowered in {"false", "0", "no", "standard"}:
+                return "standard"
+            return lowered
+
+        if luxury_raw in {"luxury", "standard"}:
+            data = [
+                car for car in data
+                if normalize_luxury(car.get("luxury")) == luxury_raw
+            ]
 
     return jsonify({"ok": True, "data": data, "demo": demo, "error": error})
 
@@ -427,6 +465,42 @@ def api_fleet_debug():
                 "params": params,
             }
         )
+
+
+@app.route("/api/debug/runtime")
+def api_debug_runtime():
+    secrets_path = Path(__file__).with_name("secrets.toml")
+    secrets = load_secrets()
+    supabase_url, supabase_key = get_supabase_config()
+    biz_id = get_default_biz_id()
+
+    host = ""
+    host_resolution = {"ok": False, "error": "No SUPABASE_URL configured."}
+    if supabase_url:
+        host = re.sub(r"^https?://", "", supabase_url).split("/", 1)[0]
+        try:
+            resolved = socket.gethostbyname(host)
+            host_resolution = {"ok": True, "host": host, "ip": resolved}
+        except OSError as exc:
+            host_resolution = {"ok": False, "host": host, "error": str(exc)}
+
+    return jsonify(
+        {
+            "cwd": os.getcwd(),
+            "app_file": str(Path(__file__).resolve()),
+            "port_env": os.getenv("PORT"),
+            "flask_debug_env": os.getenv("FLASK_DEBUG"),
+            "secrets_path": str(secrets_path),
+            "secrets_file_exists": secrets_path.exists(),
+            "secrets_keys": sorted(secrets.keys()),
+            "supabase_url_present": bool(supabase_url),
+            "supabase_url_host": host,
+            "supabase_key_present": bool(supabase_key),
+            "supabase_key_prefix": str(supabase_key or "")[:12],
+            "supabase_biz_id": biz_id,
+            "host_resolution": host_resolution,
+        }
+    )
 
 
 @app.route("/api/estimate", methods=["POST"])

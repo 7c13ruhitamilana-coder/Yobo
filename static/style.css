@@ -260,6 +260,10 @@ h1, h2, h3, .serif {
   text-align: left;
 }
 
+.field-span-2 {
+  grid-column: 1 / -1;
+}
+
 .form-grid .btn-outline {
   grid-column: 1 / -1;
   justify-self: center;
@@ -964,6 +968,10 @@ h1, h2, h3, .serif {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.assistant-flow-field-span {
+  grid-column: 1 / -1;
+}
+
 .assistant-flow-field {
   display: flex;
   flex-direction: column;
@@ -1009,12 +1017,139 @@ h1, h2, h3, .serif {
   margin-top: 24px;
 }
 
+.assistant-flow-inline-actions {
+  justify-content: flex-start;
+}
+
+.assistant-flow-inline-button {
+  margin-top: 0;
+}
+
 .assistant-flow-loading,
 .assistant-flow-empty {
   padding: 28px;
   border-radius: 18px;
   background: #faf4f4;
   color: #5e5353;
+}
+
+.assistant-flow-choice-panel,
+.assistant-flow-alert-card,
+.assistant-flow-schedule-card {
+  border: 1px solid #e8dfdf;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.04);
+}
+
+.assistant-flow-choice-panel {
+  padding: 22px 24px;
+}
+
+.assistant-flow-choice-panel p {
+  margin: 0;
+  line-height: 1.55;
+  font-size: 17px;
+}
+
+.assistant-flow-choice-panel p + p {
+  margin-top: 12px;
+}
+
+.assistant-flow-copy-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.assistant-flow-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.assistant-flow-chip,
+.assistant-flow-mini-chip {
+  border: 1px solid #bdb2b2;
+  background: #fff;
+  color: #111;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.assistant-flow-chip {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+.assistant-flow-mini-chip {
+  padding: 10px 18px;
+  font-size: 14px;
+}
+
+.assistant-flow-mini-chip.active,
+.assistant-flow-chip:hover,
+.assistant-flow-mini-chip:hover {
+  border-color: #111;
+}
+
+.assistant-flow-bubble-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assistant-flow-loader-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #111;
+  opacity: 0.35;
+  animation: assistant-flow-pulse 0.7s ease-in-out infinite;
+}
+
+.assistant-flow-loader-dot:nth-child(2) {
+  animation-delay: 0.12s;
+}
+
+.assistant-flow-loader-dot:nth-child(3) {
+  animation-delay: 0.24s;
+}
+
+@keyframes assistant-flow-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+}
+
+.assistant-flow-fleet-controls {
+  display: grid;
+  gap: 18px;
+  margin-bottom: 26px;
+}
+
+.assistant-flow-fleet-status {
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 16px;
+  background: #fff;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.assistant-flow-luxury-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .assistant-flow-fleet-grid {
@@ -1106,6 +1241,105 @@ h1, h2, h3, .serif {
   line-height: 1.45;
 }
 
+.assistant-flow-insurance-actions {
+  margin-top: 28px;
+}
+
+.assistant-flow-alert-card {
+  margin-top: 18px;
+  padding: 20px 24px;
+}
+
+.assistant-flow-alert-card p {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.assistant-flow-alert-card p + p {
+  margin-top: 14px;
+}
+
+.assistant-flow-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.assistant-flow-timer-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: #f15a56;
+  color: #fff;
+  font-weight: 600;
+}
+
+.assistant-flow-schedule-card {
+  margin-top: 22px;
+  padding: 24px;
+  border-width: 2px;
+}
+
+.assistant-flow-schedule-head h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.assistant-flow-schedule-head p {
+  margin: 6px 0 0;
+  font-size: 16px;
+  color: #545d6d;
+}
+
+.assistant-flow-schedule-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  margin-top: 22px;
+}
+
+.assistant-flow-date-card {
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid #ece2e2;
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.04);
+  padding: 22px 16px;
+  text-align: center;
+}
+
+.assistant-flow-date-card span {
+  display: block;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+}
+
+.assistant-flow-date-card strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 28px;
+}
+
+.assistant-flow-date-card small {
+  display: block;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+.assistant-flow-schedule-arrow {
+  font-size: 40px;
+  line-height: 1;
+  text-align: center;
+}
+
+.assistant-flow-edit-schedule {
+  margin-top: 22px;
+}
+
 .assistant-flow-summary {
   background: #fff;
   border: 1px solid #efe3e3;
@@ -1170,6 +1404,10 @@ h1, h2, h3, .serif {
   .assistant-flow-composer {
     grid-template-columns: 1fr;
   }
+
+  .assistant-flow-schedule-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1193,6 +1431,17 @@ h1, h2, h3, .serif {
   .assistant-flow-card-actions.between {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .assistant-flow-chip-row,
+  .assistant-flow-luxury-toggle {
+    gap: 10px;
+  }
+
+  .assistant-flow-chip,
+  .assistant-flow-mini-chip {
+    width: 100%;
+    color: #1d237e;
   }
 
   .assistant-flow-message {
