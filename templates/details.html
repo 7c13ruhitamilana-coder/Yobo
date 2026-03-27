@@ -17,7 +17,8 @@
     <div class="form-wrap">
       <section class="form-card">
         <h3>Fill this form up</h3>
-        <form class="form-grid" id="detailsForm" action="/assistant" method="get">
+        <form class="form-grid" id="detailsForm" action="{{ assistant_href }}" method="get">
+          <input id="detailsBizId" name="biz_id" type="hidden" value="{{ default_biz_id }}" />
           <div class="field">
             <label>First name *</label>
             <input name="first_name" placeholder="Enter your first name" required />
@@ -40,11 +41,24 @@
     </div>
   </main>
   <script>
+    const detailsParams = new URLSearchParams(window.location.search);
     const detailsForm = document.getElementById('detailsForm');
+    const detailsBizIdInput = document.getElementById('detailsBizId');
+    const detectedBizId =
+      detailsParams.get('biz_id') ||
+      localStorage.getItem('biz_id') ||
+      detailsBizIdInput.value ||
+      '';
+
+    if (detectedBizId) {
+      detailsBizIdInput.value = detectedBizId;
+      localStorage.setItem('biz_id', detectedBizId);
+    }
 
     if (detailsForm) {
       detailsForm.addEventListener('submit', () => {
         const formData = new FormData(detailsForm);
+        if (detectedBizId) localStorage.setItem('biz_id', detectedBizId);
         localStorage.setItem('first_name', formData.get('first_name') || '');
         localStorage.setItem('last_name', formData.get('last_name') || '');
         localStorage.setItem('phone', formData.get('phone') || '');

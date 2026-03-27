@@ -3,6 +3,8 @@
   const composerForm = document.getElementById('assistantFlowComposer');
   const composerInput = document.getElementById('assistantFlowInput');
   const params = new URLSearchParams(window.location.search);
+  const defaultBizId = document.body.dataset.defaultBizId || '';
+  const defaultBizSlug = document.body.dataset.defaultBizSlug || '';
 
   const cityOptions = [
     'Abu Dhabi',
@@ -25,11 +27,15 @@
   ];
 
   const initialPrefill = {
-    biz_id: params.get('biz_id') || localStorage.getItem('biz_id') || '',
+    biz_id: params.get('biz_id') || localStorage.getItem('biz_id') || defaultBizId || '',
     first_name: params.get('first_name') || '',
     last_name: params.get('last_name') || '',
     phone: params.get('phone') || '',
   };
+
+  if (initialPrefill.biz_id) {
+    localStorage.setItem('biz_id', initialPrefill.biz_id);
+  }
 
   const state = {
     biz_id: initialPrefill.biz_id,
@@ -61,6 +67,14 @@
 
   const stepNodes = {};
   let holdTimerId = null;
+
+  function activeBizId() {
+    return state.biz_id || localStorage.getItem('biz_id') || defaultBizId || '';
+  }
+
+  function activeBusinessSlug() {
+    return defaultBizSlug || '';
+  }
 
   function wait(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -441,7 +455,8 @@
 
   async function loadFleetInto(container) {
     const query = new URLSearchParams();
-    if (state.biz_id) query.set('biz_id', state.biz_id);
+    const bizId = activeBizId();
+    if (bizId) query.set('biz_id', bizId);
     const applyDateFilter =
       Boolean(state.schedule_confirmed) && Boolean(state.pickup_date) && Boolean(state.return_date);
     if (applyDateFilter) query.set('start_date', state.pickup_date);
@@ -558,7 +573,8 @@
     }
 
     const query = new URLSearchParams();
-    if (state.biz_id) query.set('biz_id', state.biz_id);
+    const bizId = activeBizId();
+    if (bizId) query.set('biz_id', bizId);
     query.set('start_date', state.pickup_date);
     query.set('end_date', state.return_date);
 
@@ -730,7 +746,8 @@
     body.innerHTML = '<div class="assistant-flow-loading">Loading insurance plans...</div>';
 
     const query = new URLSearchParams();
-    if (state.biz_id) query.set('biz_id', state.biz_id);
+    const bizId = activeBizId();
+    if (bizId) query.set('biz_id', bizId);
 
     try {
       const response = await fetch(`/api/insurance?${query.toString()}`);
@@ -867,7 +884,8 @@
     restartSummaryButton.addEventListener('click', resetFlow);
     confirmButton.addEventListener('click', async () => {
       const payload = {
-        biz_id: state.biz_id,
+        biz_id: activeBizId(),
+        business_slug: activeBusinessSlug(),
         customer_name: `${state.first_name} ${state.last_name}`.trim(),
         phone: state.phone,
         total_price: state.total_price,
@@ -925,7 +943,8 @@
         body: JSON.stringify({
           message: trimmed,
           history: state.history.slice(0, -1),
-          biz_id: state.biz_id,
+          biz_id: activeBizId(),
+          business_slug: activeBusinessSlug(),
           context: {
             start_date: state.pickup_date,
             end_date: state.return_date,

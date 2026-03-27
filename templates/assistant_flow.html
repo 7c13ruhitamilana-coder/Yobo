@@ -6,7 +6,7 @@
   <title>Book With Yobo</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-<body class="assistant-flow-page">
+<body class="assistant-flow-page" data-default-biz-id="{{ default_biz_id }}" data-default-biz-slug="{{ default_biz_slug }}">
   <main class="assistant-flow-shell">
     <nav class="nav">
       <div class="logo">
@@ -18,9 +18,9 @@
         <span>Smart Car Rentals</span>
       </div>
       <div class="menu">
-        <a href="/">Home</a>
-        <a class="active" href="/assistant">Book With Yobo</a>
-        <a href="/assistant-classic">Classic Assistant</a>
+        <a href="{{ home_href }}">Home</a>
+        <a class="active" href="{{ assistant_href }}">Book With Yobo</a>
+        <a href="{{ assistant_classic_href }}">Classic Assistant</a>
       </div>
       <div></div>
     </nav>

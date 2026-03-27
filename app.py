@@ -8,7 +8,7 @@ import re
 from typing import Any
 
 import tomllib
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, abort, jsonify, render_template, request
 
 try:
     import requests
@@ -127,6 +127,139 @@ def get_default_biz_id() -> str:
         or secrets.get("biz_id")
         or ""
     ).strip()
+
+
+def get_business_lookup_config() -> dict[str, str]:
+    secrets = load_secrets()
+    return {
+        "table": str(
+            os.getenv("SUPABASE_BUSINESS_TABLE")
+            or secrets.get("SUPABASE_BUSINESS_TABLE")
+            or "businesses"
+        ).strip(),
+        "slug_column": str(
+            os.getenv("SUPABASE_BUSINESS_SLUG_COLUMN")
+            or secrets.get("SUPABASE_BUSINESS_SLUG_COLUMN")
+            or "slug"
+        ).strip(),
+        "biz_id_column": str(
+            os.getenv("SUPABASE_BUSINESS_ID_COLUMN")
+            or secrets.get("SUPABASE_BUSINESS_ID_COLUMN")
+            or "biz_id"
+        ).strip(),
+        "name_column": str(
+            os.getenv("SUPABASE_BUSINESS_NAME_COLUMN")
+            or secrets.get("SUPABASE_BUSINESS_NAME_COLUMN")
+            or "name"
+        ).strip(),
+    }
+
+
+def fetch_business_by_slug(slug: str) -> dict[str, str] | None:
+    slug = (slug or "").strip()
+    supabase_url, supabase_key = get_supabase_config()
+    if not slug or not supabase_url or not supabase_key or not requests:
+        return None
+
+    lookup = get_business_lookup_config()
+    endpoint = f"{supabase_url}/rest/v1/{lookup['table']}"
+    headers = {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Content-Type": "application/json",
+    }
+
+    select_fields: list[str] = []
+    for field in (
+        lookup["biz_id_column"],
+        lookup["slug_column"],
+        lookup["name_column"],
+        "biz_id",
+        "id",
+        "slug",
+        "name",
+    ):
+        if field and field not in select_fields:
+            select_fields.append(field)
+
+    params = {
+        "select": ",".join(select_fields),
+        lookup["slug_column"]: f"eq.{slug}",
+        "limit": "1",
+    }
+
+    try:
+        response = requests.get(endpoint, headers=headers, params=params, timeout=10)
+        if response.status_code != 200:
+            return None
+        rows = response.json()
+        if not isinstance(rows, list) or not rows:
+            return None
+        row = rows[0]
+        resolved_biz_id = (
+            row.get(lookup["biz_id_column"]) or row.get("biz_id") or row.get("id") or ""
+        )
+        resolved_slug = row.get(lookup["slug_column"]) or row.get("slug") or slug
+        resolved_name = row.get(lookup["name_column"]) or row.get("name") or ""
+        if not resolved_biz_id:
+            return None
+        return {
+            "biz_id": str(resolved_biz_id).strip(),
+            "slug": str(resolved_slug).strip(),
+            "name": str(resolved_name).strip(),
+        }
+    except Exception:
+        return None
+
+
+def resolve_requested_business(
+    slug: str = "", biz_id: str = "", strict_slug: bool = False
+) -> tuple[str, str]:
+    slug = (slug or "").strip()
+    biz_id = (biz_id or "").strip()
+
+    if slug:
+        business = fetch_business_by_slug(slug)
+        if business and business.get("biz_id"):
+            return business["biz_id"], business.get("slug", slug)
+        if strict_slug:
+            abort(404)
+
+    if biz_id:
+        return biz_id, ""
+
+    return get_default_biz_id(), ""
+
+
+def build_business_page_context(slug: str = "") -> dict[str, str]:
+    requested_biz_id = request.args.get("biz_id", "").strip()
+    resolved_biz_id, resolved_slug = resolve_requested_business(
+        slug=slug, biz_id=requested_biz_id, strict_slug=bool(slug)
+    )
+
+    def href(path: str) -> str:
+        if resolved_slug:
+            if path == "/":
+                return f"/b/{resolved_slug}"
+            return f"/b/{resolved_slug}{path}"
+        if resolved_biz_id:
+            joiner = "&" if "?" in path else "?"
+            return f"{path}{joiner}biz_id={resolved_biz_id}"
+        return path
+
+    return {
+        "default_biz_id": resolved_biz_id,
+        "default_biz_slug": resolved_slug,
+        "home_href": href("/"),
+        "details_href": href("/details"),
+        "assistant_href": href("/assistant"),
+        "assistant_classic_href": href("/assistant-classic"),
+        "fleet_href": href("/fleet"),
+        "insurance_href": href("/insurance"),
+        "quote_href": href("/quote"),
+        "location_href": href("/location"),
+        "summary_href": href("/summary"),
+    }
 
 
 def get_gemini_config() -> tuple[str | None, str]:
@@ -323,60 +456,77 @@ def save_booking_to_supabase(payload: dict[str, Any]) -> tuple[bool, str]:
 
 
 @app.route("/")
-def index() -> str:
-    return render_template("index.html")
+@app.route("/b/<slug>")
+def index(slug: str = "") -> str:
+    return render_template("index.html", **build_business_page_context(slug))
 
 
 @app.route("/assistant")
-def assistant() -> str:
-    return render_template("assistant_flow.html")
+@app.route("/b/<slug>/assistant")
+def assistant(slug: str = "") -> str:
+    return render_template("assistant_flow.html", **build_business_page_context(slug))
 
 
 @app.route("/assistant-classic")
-def assistant_classic() -> str:
-    return render_template("assistant.html")
+@app.route("/b/<slug>/assistant-classic")
+def assistant_classic(slug: str = "") -> str:
+    return render_template("assistant.html", **build_business_page_context(slug))
 
 
 @app.route("/details")
-def details() -> str:
-    return render_template("details.html")
+@app.route("/b/<slug>/details")
+def details(slug: str = "") -> str:
+    return render_template("details.html", **build_business_page_context(slug))
 
 
 @app.route("/fleet")
-def fleet() -> str:
-    return render_template("fleet.html")
+@app.route("/b/<slug>/fleet")
+def fleet(slug: str = "") -> str:
+    return render_template("fleet.html", **build_business_page_context(slug))
 
 
 @app.route("/quote")
-def quote() -> str:
-    return render_template("quote.html")
+@app.route("/b/<slug>/quote")
+def quote(slug: str = "") -> str:
+    return render_template("quote.html", **build_business_page_context(slug))
 
 
 @app.route("/insurance")
-def insurance() -> str:
-    return render_template("insurance.html")
+@app.route("/b/<slug>/insurance")
+def insurance(slug: str = "") -> str:
+    return render_template("insurance.html", **build_business_page_context(slug))
 
 
 @app.route("/location")
-def location() -> str:
-    return render_template("location.html")
+@app.route("/b/<slug>/location")
+def location(slug: str = "") -> str:
+    return render_template("location.html", **build_business_page_context(slug))
 
 
 @app.route("/summary")
-def summary() -> str:
-    return render_template("summary.html")
+@app.route("/b/<slug>/summary")
+def summary(slug: str = "") -> str:
+    return render_template("summary.html", **build_business_page_context(slug))
 
 
 @app.route("/api/config")
 def api_config():
     config = get_company_config()
-    config["biz_id"] = request.args.get("biz_id", "").strip() or get_default_biz_id()
+    biz_id, biz_slug = resolve_requested_business(
+        slug=request.args.get("biz_slug", "").strip(),
+        biz_id=request.args.get("biz_id", "").strip(),
+    )
+    config["biz_id"] = biz_id
+    config["biz_slug"] = biz_slug
     return jsonify(config)
 
 
 @app.route("/api/fleet")
 def api_fleet():
-    biz_id = request.args.get("biz_id", "").strip() or get_default_biz_id()
+    biz_id, biz_slug = resolve_requested_business(
+        slug=request.args.get("biz_slug", "").strip(),
+        biz_id=request.args.get("biz_id", "").strip(),
+    )
     start_raw = request.args.get("start_date", "").strip()
     end_raw = request.args.get("end_date", "").strip()
     luxury_raw = request.args.get("luxury", "").strip().lower()
@@ -410,12 +560,17 @@ def api_fleet():
                 if normalize_luxury(car.get("luxury")) == luxury_raw
             ]
 
-    return jsonify({"ok": True, "data": data, "demo": demo, "error": error})
+    return jsonify(
+        {"ok": True, "data": data, "demo": demo, "error": error, "biz_slug": biz_slug}
+    )
 
 
 @app.route("/api/fleet/debug")
 def api_fleet_debug():
-    biz_id = request.args.get("biz_id", "").strip() or get_default_biz_id()
+    biz_id, biz_slug = resolve_requested_business(
+        slug=request.args.get("biz_slug", "").strip(),
+        biz_id=request.args.get("biz_id", "").strip(),
+    )
     supabase_url, supabase_key = get_supabase_config()
     if not supabase_url or not supabase_key or not requests:
         return jsonify(
@@ -423,6 +578,7 @@ def api_fleet_debug():
                 "ok": False,
                 "error": "Supabase not configured.",
                 "biz_id": biz_id,
+                "biz_slug": biz_slug,
                 "url": supabase_url,
                 "has_key": bool(supabase_key),
             }
@@ -450,6 +606,7 @@ def api_fleet_debug():
                 "ok": status == 200,
                 "status": status,
                 "biz_id": biz_id,
+                "biz_slug": biz_slug,
                 "url": supabase_url,
                 "params": params,
                 "body": text,
@@ -461,6 +618,7 @@ def api_fleet_debug():
                 "ok": False,
                 "error": f"Supabase error: {exc}",
                 "biz_id": biz_id,
+                "biz_slug": biz_slug,
                 "url": supabase_url,
                 "params": params,
             }
@@ -523,9 +681,14 @@ def api_estimate():
 
 @app.route("/api/insurance")
 def api_insurance():
-    biz_id = request.args.get("biz_id", "").strip() or get_default_biz_id()
+    biz_id, biz_slug = resolve_requested_business(
+        slug=request.args.get("biz_slug", "").strip(),
+        biz_id=request.args.get("biz_id", "").strip(),
+    )
     data = fetch_insurance_from_supabase(biz_id)
-    return jsonify({"ok": True, "data": data, "demo": data == DEMO_INSURANCE})
+    return jsonify(
+        {"ok": True, "data": data, "demo": data == DEMO_INSURANCE, "biz_slug": biz_slug}
+    )
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -536,7 +699,10 @@ def api_chat():
         return jsonify({"ok": False, "error": "Message is required."}), 400
 
     history = body.get("history") or []
-    biz_id = (body.get("biz_id") or "").strip() or get_default_biz_id()
+    biz_id, biz_slug = resolve_requested_business(
+        slug=(body.get("business_slug") or "").strip(),
+        biz_id=(body.get("biz_id") or "").strip(),
+    )
     context = body.get("context") or {}
     context_start = (context.get("start_date") or "").strip()
     context_end = (context.get("end_date") or "").strip()
@@ -620,7 +786,11 @@ def api_chat():
             from urllib.parse import urlencode
 
             query = {}
-            if biz_id:
+            if biz_slug:
+                href = f"/b/{biz_slug}/fleet"
+            else:
+                href = "/fleet"
+            if biz_id and not biz_slug:
                 query["biz_id"] = biz_id
             if start_date:
                 query["start_date"] = start_date.isoformat()
@@ -628,9 +798,20 @@ def api_chat():
                 query["end_date"] = end_date.isoformat()
             if context_city:
                 query["city"] = context_city
-            href = "/fleet"
             if query:
                 href = f"/fleet?{urlencode(query)}"
+            if biz_slug:
+                href = f"/b/{biz_slug}/fleet"
+                if start_date or end_date or context_city:
+                    slug_query = {}
+                    if start_date:
+                        slug_query["start_date"] = start_date.isoformat()
+                    if end_date:
+                        slug_query["end_date"] = end_date.isoformat()
+                    if context_city:
+                        slug_query["city"] = context_city
+                    if slug_query:
+                        href = f"/b/{biz_slug}/fleet?{urlencode(slug_query)}"
             fleet_action = {
                 "label": "View Available Fleet" if start_date and end_date else "Go To Fleet",
                 "href": href,
@@ -669,7 +850,10 @@ def api_chat():
 def api_bookings():
     body = request.get_json(force=True, silent=True) or {}
     if not body.get("biz_id"):
-        body["biz_id"] = get_default_biz_id()
+        body["biz_id"], _ = resolve_requested_business(
+            slug=(body.get("business_slug") or "").strip(),
+            biz_id="",
+        )
     if not body.get("insurance"):
         body["insurance"] = "No insurance"
     required = [
