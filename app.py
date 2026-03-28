@@ -443,6 +443,22 @@ def save_booking_to_supabase(payload: dict[str, Any]) -> tuple[bool, str]:
     if not supabase_url or not supabase_key or not requests:
         return True, "Saved in demo mode (no API yet)."
 
+    allowed_fields = {
+        "biz_id",
+        "customer_name",
+        "phone",
+        "total_price",
+        "start_date",
+        "end_date",
+        "city",
+        "car_id",
+        "location",
+        "insurance",
+    }
+    insert_payload = {
+        key: value for key, value in payload.items() if key in allowed_fields
+    }
+
     endpoint = f"{supabase_url}/rest/v1/bookings"
     headers = {
         "apikey": supabase_key,
@@ -452,7 +468,7 @@ def save_booking_to_supabase(payload: dict[str, Any]) -> tuple[bool, str]:
     }
 
     try:
-        response = requests.post(endpoint, headers=headers, json=payload, timeout=10)
+        response = requests.post(endpoint, headers=headers, json=insert_payload, timeout=10)
         if response.status_code in (200, 201):
             return True, "Booking saved successfully."
         return False, f"Supabase insert failed: {response.text}"
