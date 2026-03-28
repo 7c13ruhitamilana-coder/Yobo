@@ -8,7 +8,7 @@ import re
 from typing import Any
 
 import tomllib
-from flask import Flask, abort, jsonify, render_template, request
+from flask import Flask, abort, jsonify, redirect, render_template, request
 
 try:
     import requests
@@ -262,6 +262,11 @@ def build_business_page_context(slug: str = "") -> dict[str, str]:
     }
 
 
+def redirect_to_assistant(slug: str = ""):
+    context = build_business_page_context(slug)
+    return redirect(context["assistant_href"])
+
+
 def get_gemini_config() -> tuple[str | None, str]:
     secrets = load_secrets()
     api_key = os.getenv("GEMINI_API_KEY") or secrets.get("GEMINI_API_KEY")
@@ -470,13 +475,13 @@ def assistant(slug: str = "") -> str:
 @app.route("/assistant-classic")
 @app.route("/b/<slug>/assistant-classic")
 def assistant_classic(slug: str = "") -> str:
-    return render_template("assistant.html", **build_business_page_context(slug))
+    return redirect_to_assistant(slug)
 
 
 @app.route("/details")
 @app.route("/b/<slug>/details")
 def details(slug: str = "") -> str:
-    return render_template("details.html", **build_business_page_context(slug))
+    return redirect_to_assistant(slug)
 
 
 @app.route("/fleet")
@@ -488,25 +493,25 @@ def fleet(slug: str = "") -> str:
 @app.route("/quote")
 @app.route("/b/<slug>/quote")
 def quote(slug: str = "") -> str:
-    return render_template("quote.html", **build_business_page_context(slug))
+    return redirect_to_assistant(slug)
 
 
 @app.route("/insurance")
 @app.route("/b/<slug>/insurance")
 def insurance(slug: str = "") -> str:
-    return render_template("insurance.html", **build_business_page_context(slug))
+    return redirect_to_assistant(slug)
 
 
 @app.route("/location")
 @app.route("/b/<slug>/location")
 def location(slug: str = "") -> str:
-    return render_template("location.html", **build_business_page_context(slug))
+    return redirect_to_assistant(slug)
 
 
 @app.route("/summary")
 @app.route("/b/<slug>/summary")
 def summary(slug: str = "") -> str:
-    return render_template("summary.html", **build_business_page_context(slug))
+    return redirect_to_assistant(slug)
 
 
 @app.route("/api/config")

@@ -7,15 +7,39 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
-  {% set biz_query = '?biz_id=' ~ default_biz_id if default_biz_id else '' %}
   <main class="container">
+    <nav class="nav">
+      <div class="logo">
+        <svg viewBox="0 0 64 32" aria-hidden="true">
+          <path d="M6 22c6-9 14-14 26-14s20 5 26 14" fill="none" stroke="#111" stroke-width="2" />
+          <circle cx="16" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
+          <circle cx="48" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
+        </svg>
+        <span>Smart Car Rentals</span>
+      </div>
+      <div class="menu">
+        <a href="{{ home_href }}">Home</a>
+        <a class="active" href="{{ fleet_href }}">Our Fleet</a>
+        <a href="{{ assistant_href }}">Book With Yobo</a>
+      </div>
+      <div></div>
+    </nav>
+
     <div class="section-title-row">
       <div class="num">02</div>
       <div class="title">Pick Your Dream Car</div>
       <div class="line"></div>
     </div>
 
+    <div class="assistant-flow-fleet-status">
+      Browse the fleet here. To book a car, continue with Yobo.
+    </div>
+
     <section class="fleet-grid" id="fleetGrid"></section>
+
+    <div class="summary-actions">
+      <a class="btn-confirm" href="{{ assistant_href }}">Book With Yobo</a>
+    </div>
   </main>
 
   <script>
