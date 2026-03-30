@@ -169,16 +169,7 @@ def fetch_business_by_slug(slug: str) -> dict[str, str] | None:
         "Content-Type": "application/json",
     }
 
-    select_fields: list[str] = []
-    for field in (
-        lookup["biz_id_column"],
-        lookup["slug_column"],
-        "biz_id",
-        "id",
-        "slug",
-    ):
-        if field and field not in select_fields:
-            select_fields.append(field)
+    select_fields = [lookup["biz_id_column"], lookup["slug_column"]]
 
     params = {
         "select": ",".join(select_fields),
@@ -194,9 +185,7 @@ def fetch_business_by_slug(slug: str) -> dict[str, str] | None:
         if not isinstance(rows, list) or not rows:
             return None
         row = rows[0]
-        resolved_biz_id = (
-            row.get(lookup["biz_id_column"]) or row.get("biz_id") or row.get("id") or ""
-        )
+        resolved_biz_id = row.get(lookup["biz_id_column"]) or ""
         resolved_slug = row.get(lookup["slug_column"]) or row.get("slug") or slug
         if not resolved_biz_id:
             return None
@@ -714,16 +703,7 @@ def api_debug_business():
         "Content-Type": "application/json",
     }
 
-    select_fields: list[str] = []
-    for field in (
-        lookup["biz_id_column"],
-        lookup["slug_column"],
-        "biz_id",
-        "id",
-        "slug",
-    ):
-        if field and field not in select_fields:
-            select_fields.append(field)
+    select_fields = [lookup["biz_id_column"], lookup["slug_column"]]
 
     params = {
         "select": ",".join(select_fields),
