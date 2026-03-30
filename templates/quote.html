@@ -6,7 +6,7 @@
   <title>Instant AI Quotation</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-<body>
+<body data-default-biz-id="{{ default_biz_id }}" data-default-biz-slug="{{ default_biz_slug }}">
   <main class="container center-viewport">
     <section class="quote-layout">
       <div class="quote-left">
@@ -42,9 +42,13 @@
     </section>
   </main>
   <script>
+    const quoteDefaultBizId = document.body.dataset.defaultBizId || '';
+    const quoteDefaultBizSlug = document.body.dataset.defaultBizSlug || '';
+    const quoteInsuranceHref = {{ insurance_href|tojson }};
     const quoteParams = new URLSearchParams(window.location.search);
-    const quoteBizId = quoteParams.get('biz_id') || localStorage.getItem('biz_id') || '';
+    const quoteBizId = quoteParams.get('biz_id') || localStorage.getItem('biz_id') || quoteDefaultBizId || '';
     if (quoteBizId) localStorage.setItem('biz_id', quoteBizId);
+    if (quoteDefaultBizSlug) localStorage.setItem('business_slug', quoteDefaultBizSlug);
     const make = quoteParams.get('make') || '';
     const model = quoteParams.get('model') || '';
     const price = quoteParams.get('price_per_day') || '';
@@ -57,7 +61,8 @@
     function buildInsuranceHref() {
       const query = new URLSearchParams();
       const values = {
-        biz_id: localStorage.getItem('biz_id') || '',
+        biz_id: localStorage.getItem('biz_id') || quoteDefaultBizId || '',
+        business_slug: localStorage.getItem('business_slug') || quoteDefaultBizSlug || '',
         first_name: localStorage.getItem('first_name') || '',
         last_name: localStorage.getItem('last_name') || '',
         phone: localStorage.getItem('phone') || '',
@@ -72,7 +77,7 @@
       Object.entries(values).forEach(([key, value]) => {
         if (value) query.set(key, value);
       });
-      return `/insurance?${query.toString()}`;
+      return `${quoteInsuranceHref}?${query.toString()}`;
     }
 
     document.getElementById('quoteNext').href = buildInsuranceHref();
