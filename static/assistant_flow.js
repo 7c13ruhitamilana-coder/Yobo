@@ -4,7 +4,6 @@
   const composerInput = document.getElementById('assistantFlowInput');
   const params = new URLSearchParams(window.location.search);
   const defaultBizId = document.body.dataset.defaultBizId || '';
-  const defaultBizSlug = document.body.dataset.defaultBizSlug || '';
 
   const cityOptions = [
     'Abu Dhabi',
@@ -70,10 +69,6 @@
 
   function activeBizId() {
     return state.biz_id || localStorage.getItem('biz_id') || defaultBizId || '';
-  }
-
-  function activeBusinessSlug() {
-    return defaultBizSlug || '';
   }
 
   function wait(ms) {
@@ -885,7 +880,6 @@
     confirmButton.addEventListener('click', async () => {
       const payload = {
         biz_id: activeBizId(),
-        business_slug: activeBusinessSlug(),
         customer_name: `${state.first_name} ${state.last_name}`.trim(),
         phone: state.phone,
         total_price: state.total_price,
@@ -944,7 +938,6 @@
           message: trimmed,
           history: state.history.slice(0, -1),
           biz_id: activeBizId(),
-          business_slug: activeBusinessSlug(),
           context: {
             start_date: state.pickup_date,
             end_date: state.return_date,
