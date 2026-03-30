@@ -682,6 +682,76 @@ def api_debug_runtime():
     )
 
 
+@app.route("/api/debug/business")
+def api_debug_business():
+    requested_slug = request.args.get("biz_slug", "").strip()
+    requested_biz_id = request.args.get("biz_id", "").strip()
+    lookup = get_business_lookup_config()
+    supabase_url, supabase_key = get_supabase_config()
+
+    payload: dict[str, Any] = {
+        "requested_slug": requested_slug,
+        "requested_biz_id": requested_biz_id,
+        "lookup_config": lookup,
+        "supabase_url_present": bool(supabase_url),
+        "supabase_key_present": bool(supabase_key),
+        "resolved": None,
+        "query": None,
+        "status": None,
+        "body": None,
+        "error": None,
+    }
+
+    if not requested_slug:
+        payload["error"] = "Missing biz_slug query parameter."
+        return jsonify(payload), 400
+
+    if not supabase_url or not supabase_key or not requests:
+        payload["error"] = "Supabase is not configured on this runtime."
+        return jsonify(payload), 500
+
+    endpoint = f"{supabase_url}/rest/v1/{lookup['table']}"
+    headers = {
+        "apikey": supabase_key,
+        "Authorization": f"Bearer {supabase_key}",
+        "Content-Type": "application/json",
+    }
+
+    select_fields: list[str] = []
+    for field in (
+        lookup["biz_id_column"],
+        lookup["slug_column"],
+        lookup["name_column"],
+        "biz_id",
+        "biz_name",
+        "id",
+        "slug",
+        "name",
+    ):
+        if field and field not in select_fields:
+            select_fields.append(field)
+
+    params = {
+        "select": ",".join(select_fields),
+        lookup["slug_column"]: f"eq.{requested_slug}",
+        "limit": "1",
+    }
+    payload["query"] = {"endpoint": endpoint, "params": params}
+
+    try:
+        response = requests.get(endpoint, headers=headers, params=params, timeout=10)
+        payload["status"] = response.status_code
+        payload["body"] = response.text
+        if response.status_code == 200:
+            payload["resolved"] = fetch_business_by_slug(requested_slug)
+        else:
+            payload["error"] = f"Supabase response {response.status_code}"
+    except Exception as exc:
+        payload["error"] = str(exc)
+
+    return jsonify(payload)
+
+
 @app.route("/api/estimate", methods=["POST"])
 def api_estimate():
     body = request.get_json(force=True, silent=True) or {}
