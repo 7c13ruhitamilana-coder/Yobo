@@ -173,11 +173,9 @@ def fetch_business_by_slug(slug: str) -> dict[str, str] | None:
     for field in (
         lookup["biz_id_column"],
         lookup["slug_column"],
-        lookup["name_column"],
         "biz_id",
         "id",
         "slug",
-        "name",
     ):
         if field and field not in select_fields:
             select_fields.append(field)
@@ -200,13 +198,12 @@ def fetch_business_by_slug(slug: str) -> dict[str, str] | None:
             row.get(lookup["biz_id_column"]) or row.get("biz_id") or row.get("id") or ""
         )
         resolved_slug = row.get(lookup["slug_column"]) or row.get("slug") or slug
-        resolved_name = row.get(lookup["name_column"]) or row.get("name") or ""
         if not resolved_biz_id:
             return None
         return {
             "biz_id": str(resolved_biz_id).strip(),
             "slug": str(resolved_slug).strip(),
-            "name": str(resolved_name).strip(),
+            "name": "",
         }
     except Exception:
         return None
@@ -721,12 +718,9 @@ def api_debug_business():
     for field in (
         lookup["biz_id_column"],
         lookup["slug_column"],
-        lookup["name_column"],
         "biz_id",
-        "biz_name",
         "id",
         "slug",
-        "name",
     ):
         if field and field not in select_fields:
             select_fields.append(field)
