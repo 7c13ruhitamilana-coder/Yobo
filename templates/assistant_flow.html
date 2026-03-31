@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body class="assistant-flow-page" data-default-biz-id="{{ default_biz_id }}">
-  <main class="assistant-flow-shell">
+  <main class="assistant-flow-shell assistant-flow-shell-chat">
     <nav class="nav">
       <div class="logo">
         <svg viewBox="0 0 64 32" aria-hidden="true">
@@ -25,30 +25,19 @@
       <div></div>
     </nav>
 
-    <section class="assistant-flow-header">
-      <div>
-        <p class="assistant-flow-kicker">AI Booking Concierge</p>
-        <h1>Book your rental in one guided conversation.</h1>
-        <p class="assistant-flow-subtitle">
-          Yobo will take the customer through details, live fleet availability, pickup location, insurance, and confirmation in sequence.
-        </p>
-      </div>
+    <section class="assistant-chat-window">
+      <div class="assistant-chat-thread assistant-flow-thread" id="assistantFlowThread"></div>
+      <form class="assistant-chat-composer assistant-flow-composer" id="assistantFlowComposer">
+        <input
+          class="assistant-chat-input assistant-flow-input"
+          id="assistantFlowInput"
+          type="text"
+          placeholder="Type your reply here..."
+          autocomplete="off"
+        />
+        <button class="btn-black assistant-chat-send" type="submit">Send</button>
+      </form>
     </section>
-
-    <section class="assistant-flow-board">
-      <div class="assistant-flow-thread" id="assistantFlowThread"></div>
-    </section>
-
-    <form class="assistant-flow-composer" id="assistantFlowComposer">
-      <input
-        class="assistant-flow-input"
-        id="assistantFlowInput"
-        type="text"
-        placeholder="Ask Yobo about dates, budgets, or available cars..."
-        autocomplete="off"
-      />
-      <button class="btn-black" type="submit">Send</button>
-    </form>
   </main>
 
   <script src="{{ url_for('static', filename='assistant_flow.js') }}"></script>

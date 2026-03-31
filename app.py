@@ -204,9 +204,17 @@ def fetch_fleet_from_supabase(biz_id: str) -> tuple[list[dict[str, Any]], bool, 
         except Exception as exc:
             return None, f"Supabase error: {exc}"
 
+    branch_select = (
+        "id,make,model,price_per_day,available,photo_url,color,luxury,"
+        "city,branch_city,branch_location,location"
+    )
     extended_select = "id,make,model,price_per_day,available,photo_url,color,luxury"
     luxury_select = "id,make,model,price_per_day,available,photo_url,luxury"
     basic_select = "id,make,model,price_per_day,available,photo_url"
+
+    data, error = attempt(branch_select)
+    if data is not None:
+        return data, False, None
 
     data, error = attempt(extended_select)
     if data is not None:
@@ -427,6 +435,7 @@ def api_fleet():
     biz_id = requested_biz_id()
     start_raw = request.args.get("start_date", "").strip()
     end_raw = request.args.get("end_date", "").strip()
+    city_raw = request.args.get("city", "").strip().lower()
     luxury_raw = request.args.get("luxury", "").strip().lower()
     data, demo, error = fetch_fleet_from_supabase(biz_id)
 
@@ -440,6 +449,26 @@ def api_fleet():
     if start_date and end_date:
         booked_ids = fetch_booked_car_ids(biz_id, start_date, end_date)
         data = [car for car in data if str(car.get("id")) not in booked_ids]
+
+    if city_raw:
+        def normalize_city(value: Any) -> str:
+            return re.sub(r"[^a-z0-9]+", "", str(value or "").strip().lower())
+
+        city_fields = ("city", "branch_city", "branch_location", "location")
+        city_matches = [
+            car for car in data
+            if any(car.get(field) for field in city_fields)
+        ]
+        if city_matches:
+            normalized_requested = normalize_city(city_raw)
+            data = [
+                car for car in data
+                if any(
+                    normalize_city(car.get(field)) == normalized_requested
+                    for field in city_fields
+                    if car.get(field)
+                )
+            ]
 
     if luxury_raw and any(car.get("luxury") is not None for car in data):
         def normalize_luxury(value: Any) -> str:
