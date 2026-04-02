@@ -1,20 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap');
 
 :root {
-  --bg: #071126;
-  --bg-soft: #0d1835;
-  --panel: rgba(15, 27, 56, 0.88);
-  --panel-strong: #111f42;
-  --panel-line: rgba(133, 155, 219, 0.16);
-  --text: #eef3ff;
-  --muted: #96a8d6;
-  --muted-strong: #c4d0f2;
-  --accent: #7c86ff;
-  --accent-strong: #a9b0ff;
-  --success: #3ed7a8;
-  --warning: #ffc76a;
-  --danger: #ff8d8d;
-  --shadow: 0 28px 70px rgba(1, 7, 24, 0.52);
+  --bg: #ecf6ff;
+  --bg-soft: #d9ebff;
+  --panel: rgba(245, 250, 255, 0.9);
+  --panel-strong: rgba(226, 239, 255, 0.96);
+  --panel-line: rgba(121, 159, 215, 0.24);
+  --surface-soft: rgba(233, 244, 255, 0.92);
+  --surface-deep: rgba(216, 232, 252, 0.98);
+  --surface-accent: rgba(197, 222, 255, 0.95);
+  --text: #17345f;
+  --muted: #5f7ea8;
+  --muted-strong: #355684;
+  --accent: #78acff;
+  --accent-strong: #4d87de;
+  --success: #75aef7;
+  --warning: #96c2ff;
+  --danger: #d37fb4;
+  --shadow: 0 24px 60px rgba(87, 128, 188, 0.18);
 }
 
 * {
@@ -29,9 +32,9 @@ body {
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(124, 134, 255, 0.18), transparent 30%),
-    radial-gradient(circle at top right, rgba(62, 215, 168, 0.11), transparent 24%),
-    linear-gradient(180deg, #09122b 0%, #050b19 100%);
+    radial-gradient(circle at top left, rgba(120, 173, 255, 0.34), transparent 34%),
+    radial-gradient(circle at top right, rgba(173, 212, 255, 0.46), transparent 28%),
+    linear-gradient(180deg, #f4fbff 0%, #e3f1ff 48%, #d7eaff 100%);
   color: var(--text);
   font-family: 'Manrope', sans-serif;
 }
@@ -73,9 +76,9 @@ a {
 .field-group input,
 .field-group select {
   width: 100%;
-  border: 1px solid rgba(141, 162, 221, 0.16);
+  border: 1px solid var(--panel-line);
   border-radius: 16px;
-  background: rgba(16, 28, 58, 0.88);
+  background: rgba(255, 255, 255, 0.72);
   color: var(--text);
   padding: 14px 16px;
   font: inherit;
@@ -85,8 +88,8 @@ a {
 
 .field-group input:focus,
 .field-group select:focus {
-  border-color: rgba(124, 134, 255, 0.7);
-  box-shadow: 0 0 0 4px rgba(124, 134, 255, 0.14);
+  border-color: rgba(77, 135, 222, 0.5);
+  box-shadow: 0 0 0 4px rgba(120, 172, 255, 0.18);
 }
 
 .field-group.compact span {
@@ -117,15 +120,15 @@ a {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #7c86ff 0%, #99a2ff 100%);
-  color: #061020;
-  box-shadow: 0 18px 34px rgba(120, 130, 255, 0.26);
+  background: linear-gradient(135deg, #8bbcff 0%, #bddcff 100%);
+  color: #143252;
+  box-shadow: 0 18px 34px rgba(106, 160, 230, 0.24);
 }
 
 .secondary-button,
 .logout-link {
-  background: rgba(17, 31, 66, 0.78);
-  border: 1px solid rgba(141, 162, 221, 0.16);
+  background: rgba(244, 250, 255, 0.78);
+  border: 1px solid var(--panel-line);
   color: var(--text);
 }
 
@@ -172,7 +175,7 @@ a {
   top: 100px;
   width: 180px;
   height: 180px;
-  border: 1px solid rgba(124, 134, 255, 0.28);
+  border: 1px solid rgba(120, 172, 255, 0.35);
 }
 
 .orbit-two {
@@ -180,7 +183,7 @@ a {
   bottom: 40px;
   width: 320px;
   height: 320px;
-  border: 1px solid rgba(62, 215, 168, 0.14);
+  border: 1px solid rgba(154, 196, 255, 0.34);
 }
 
 .login-panel {
@@ -192,8 +195,8 @@ a {
   width: min(470px, 100%);
   padding: 34px;
   border-radius: 30px;
-  background: rgba(8, 18, 40, 0.84);
-  border: 1px solid rgba(133, 155, 219, 0.16);
+  background: rgba(247, 251, 255, 0.86);
+  border: 1px solid var(--panel-line);
   box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
 }
@@ -229,9 +232,9 @@ a {
 }
 
 .flash-message.error {
-  background: rgba(255, 141, 141, 0.12);
-  border: 1px solid rgba(255, 141, 141, 0.22);
-  color: #ffd8d8;
+  background: rgba(248, 230, 244, 0.86);
+  border: 1px solid rgba(211, 127, 180, 0.22);
+  color: #874f79;
 }
 
 .dashboard-shell {
@@ -272,9 +275,9 @@ a {
   min-width: 230px;
   padding: 16px 18px;
   border-radius: 22px;
-  background: rgba(14, 26, 54, 0.9);
-  border: 1px solid rgba(133, 155, 219, 0.16);
-  box-shadow: 0 18px 50px rgba(1, 7, 24, 0.25);
+  background: rgba(246, 251, 255, 0.88);
+  border: 1px solid var(--panel-line);
+  box-shadow: 0 18px 50px rgba(118, 155, 208, 0.16);
 }
 
 .chip-label,
@@ -300,9 +303,9 @@ a {
 .stat-card {
   padding: 20px 22px;
   border-radius: 24px;
-  background: rgba(13, 24, 53, 0.92);
-  border: 1px solid rgba(133, 155, 219, 0.16);
-  box-shadow: 0 12px 34px rgba(1, 7, 24, 0.18);
+  background: rgba(244, 249, 255, 0.92);
+  border: 1px solid var(--panel-line);
+  box-shadow: 0 12px 34px rgba(116, 156, 209, 0.14);
 }
 
 .stat-label {
@@ -324,8 +327,8 @@ a {
 .table-panel,
 .feedback-banner {
   border-radius: 28px;
-  background: rgba(10, 18, 40, 0.9);
-  border: 1px solid rgba(133, 155, 219, 0.16);
+  background: rgba(245, 250, 255, 0.9);
+  border: 1px solid var(--panel-line);
   box-shadow: var(--shadow);
   backdrop-filter: blur(16px);
 }
@@ -341,8 +344,8 @@ a {
   gap: 14px;
   padding: 16px 18px;
   border-radius: 999px;
-  background: rgba(27, 35, 91, 0.72);
-  border: 1px solid rgba(133, 155, 219, 0.16);
+  background: rgba(227, 240, 255, 0.92);
+  border: 1px solid rgba(121, 159, 215, 0.28);
 }
 
 .search-icon {
@@ -368,7 +371,7 @@ a {
 }
 
 .search-bar input::placeholder {
-  color: rgba(196, 208, 242, 0.62);
+  color: rgba(95, 126, 168, 0.72);
 }
 
 .filters-grid {
@@ -387,21 +390,21 @@ a {
 }
 
 .feedback-banner.error {
-  border-color: rgba(255, 141, 141, 0.22);
-  background: rgba(38, 14, 22, 0.88);
-  color: #ffd5d5;
+  border-color: rgba(211, 127, 180, 0.22);
+  background: rgba(250, 237, 247, 0.92);
+  color: #845070;
 }
 
 .feedback-banner.warning {
-  border-color: rgba(255, 199, 106, 0.2);
-  background: rgba(38, 28, 12, 0.88);
-  color: #ffe4b6;
+  border-color: rgba(140, 187, 246, 0.22);
+  background: rgba(234, 244, 255, 0.92);
+  color: #3e6494;
 }
 
 .feedback-banner.success {
-  border-color: rgba(62, 215, 168, 0.22);
-  background: rgba(10, 34, 30, 0.88);
-  color: #c5ffe9;
+  border-color: rgba(117, 174, 247, 0.24);
+  background: rgba(230, 243, 255, 0.92);
+  color: #325988;
 }
 
 .table-panel {
@@ -452,7 +455,7 @@ a {
 
 .table-header {
   padding: 14px 16px;
-  color: rgba(196, 208, 242, 0.8);
+  color: rgba(53, 86, 132, 0.82);
   font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -466,8 +469,8 @@ a {
 .data-row {
   padding: 16px;
   border-radius: 22px;
-  background: rgba(17, 31, 66, 0.88);
-  border: 1px solid rgba(133, 155, 219, 0.13);
+  background: rgba(238, 246, 255, 0.96);
+  border: 1px solid rgba(121, 159, 215, 0.18);
 }
 
 .data-row.loading {
@@ -522,30 +525,30 @@ a {
 }
 
 .badge.pending {
-  background: rgba(255, 199, 106, 0.14);
-  color: #ffd58e;
+  background: rgba(201, 223, 255, 0.9);
+  color: #436999;
 }
 
 .badge.paid {
-  background: rgba(62, 215, 168, 0.14);
-  color: #81f6cf;
+  background: rgba(184, 218, 255, 0.9);
+  color: #275a93;
 }
 
 .badge.failed {
-  background: rgba(255, 141, 141, 0.14);
-  color: #ffc3c3;
+  background: rgba(244, 230, 246, 0.94);
+  color: #8a517a;
 }
 
 .badge.partial {
-  background: rgba(124, 134, 255, 0.16);
-  color: #c4cbff;
+  background: rgba(220, 236, 255, 0.92);
+  color: #456b9a;
 }
 
 .status-select {
   width: 100%;
-  border: 1px solid rgba(133, 155, 219, 0.16);
+  border: 1px solid var(--panel-line);
   border-radius: 14px;
-  background: rgba(9, 17, 38, 0.88);
+  background: rgba(252, 254, 255, 0.9);
   color: var(--text);
   padding: 12px 14px;
   font: inherit;
@@ -575,8 +578,8 @@ a {
   width: 100%;
   height: 100%;
   border-radius: 999px;
-  background: rgba(255, 199, 106, 0.18);
-  border: 1px solid rgba(255, 199, 106, 0.16);
+  background: rgba(198, 220, 255, 0.86);
+  border: 1px solid rgba(121, 159, 215, 0.22);
   transition: background 160ms ease, border-color 160ms ease;
 }
 
@@ -588,18 +591,18 @@ a {
   width: 24px;
   height: 24px;
   border-radius: 999px;
-  background: #fff7e7;
+  background: #ffffff;
   transition: transform 160ms ease;
 }
 
 .toggle input:checked + .slider {
-  background: rgba(62, 215, 168, 0.22);
-  border-color: rgba(62, 215, 168, 0.22);
+  background: rgba(146, 192, 255, 0.92);
+  border-color: rgba(94, 144, 223, 0.36);
 }
 
 .toggle input:checked + .slider::after {
   transform: translateX(22px);
-  background: #d9fff2;
+  background: #f7fbff;
 }
 
 .confirm-text {
@@ -698,6 +701,6 @@ a {
     width: fit-content;
     padding: 8px 12px;
     border-radius: 999px;
-    background: rgba(124, 134, 255, 0.12);
+    background: rgba(207, 226, 255, 0.92);
   }
 }
