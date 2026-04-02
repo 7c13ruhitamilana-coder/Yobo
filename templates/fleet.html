@@ -3,24 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Our Fleet</title>
+  <title>Veep Fleet</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
   <main class="container">
     <nav class="nav">
-      <div class="logo">
-        <svg viewBox="0 0 64 32" aria-hidden="true">
-          <path d="M6 22c6-9 14-14 26-14s20 5 26 14" fill="none" stroke="#111" stroke-width="2" />
-          <circle cx="16" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
-          <circle cx="48" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
-        </svg>
-        <span>Smart Car Rentals</span>
+      <div class="logo veep-logo" aria-label="Veep">
+        <span class="veep-logo-mark veep-logo-mark-left"></span>
+        <span class="veep-logo-word">VEEP</span>
+        <span class="veep-logo-mark veep-logo-mark-right"></span>
       </div>
       <div class="menu">
         <a href="{{ home_href }}">Home</a>
         <a class="active" href="{{ fleet_href }}">Our Fleet</a>
-        <a href="{{ assistant_href }}">Book With Yobo</a>
+        <a href="{{ assistant_href }}">Start Enquiry</a>
       </div>
       <div></div>
     </nav>
@@ -32,13 +29,13 @@
     </div>
 
     <div class="assistant-flow-fleet-status">
-      Browse the fleet here. To book a car, continue with Yobo.
+      Browse the fleet here. To submit an enquiry, continue with Yobo.
     </div>
 
     <section class="fleet-grid" id="fleetGrid"></section>
 
     <div class="summary-actions">
-      <a class="btn-confirm" href="{{ assistant_href }}">Book With Yobo</a>
+      <a class="btn-confirm" href="{{ assistant_href }}">Start Enquiry</a>
     </div>
   </main>
 
@@ -72,7 +69,7 @@
           <div class="fleet-meta">
             <div>Make: ${car.make || '-'}</div>
             <div>Model: ${car.model || '-'}</div>
-            <div>Price/Day: AED ${priceLabel}</div>
+            <div>Price/Day: SGD ${priceLabel}</div>
           </div>
         </article>
       `;

@@ -3,29 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Book With Yobo</title>
+  <title>Veep Enquiry Assistant</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body class="assistant-flow-page" data-default-biz-id="{{ default_biz_id }}">
   <main class="assistant-flow-shell assistant-flow-shell-chat">
     <nav class="nav">
-      <div class="logo">
-        <svg viewBox="0 0 64 32" aria-hidden="true">
-          <path d="M6 22c6-9 14-14 26-14s20 5 26 14" fill="none" stroke="#111" stroke-width="2" />
-          <circle cx="16" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
-          <circle cx="48" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
-        </svg>
-        <span>Smart Car Rentals</span>
+      <div class="logo veep-logo" aria-label="Veep">
+        <span class="veep-logo-mark veep-logo-mark-left"></span>
+        <span class="veep-logo-word">VEEP</span>
+        <span class="veep-logo-mark veep-logo-mark-right"></span>
       </div>
       <div class="menu">
         <a href="{{ home_href }}">Home</a>
         <a href="{{ fleet_href }}">Our Fleet</a>
-        <a class="active" href="{{ assistant_href }}">Book With Yobo</a>
+        <a class="active" href="{{ assistant_href }}">Start Enquiry</a>
       </div>
       <div></div>
     </nav>
 
     <section class="assistant-chat-window">
+      <div id="assistantFlowConsentRoot"></div>
       <div class="assistant-chat-thread assistant-flow-thread" id="assistantFlowThread"></div>
       <form class="assistant-chat-composer assistant-flow-composer" id="assistantFlowComposer">
         <input

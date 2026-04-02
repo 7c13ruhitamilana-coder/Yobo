@@ -2,23 +2,23 @@
   const thread = document.getElementById('assistantFlowThread');
   const composerForm = document.getElementById('assistantFlowComposer');
   const composerInput = document.getElementById('assistantFlowInput');
+  const consentRoot = document.getElementById('assistantFlowConsentRoot');
   if (!thread || !composerForm || !composerInput) {
     return;
   }
 
   const params = new URLSearchParams(window.location.search);
   const defaultBizId = document.body.dataset.defaultBizId || '';
-  const supportedCities = [
-    'Abu Dhabi',
-    'Dubai',
-    'Sharjah',
-    'Ras Al-Khaimah',
-    'Al-Ain',
-    'Fujairah',
-    'Ajman',
-  ];
+  const currencyCode = 'SGD';
   const processingFee = 50;
-  const panelSequence = ['schedule', 'fleet', 'quote', 'location', 'insurance', 'confirm', 'summary'];
+  const gstRate = 0.09;
+  const consentKey = 'veep_resume_consent';
+  const draftKey = 'veep_interest_draft_v2';
+  const cookieName = 'veep_resume_consent';
+  const fleetPromptExamples = ['family SUV', 'budget daily drive', 'something executive', 'electric car'];
+  const interestTypeOptions = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
+  const citizenOptions = ['Yes', 'Yes Permanent Resident', 'No'];
+  const panelSequence = ['dates', 'interest_type', 'contract_expiry', 'citizen', 'fleet', 'quote', 'review', 'summary'];
 
   const initialBizId = params.get('biz_id') || localStorage.getItem('biz_id') || defaultBizId || '';
   if (initialBizId) {
@@ -28,28 +28,26 @@
   function buildInitialState() {
     return {
       biz_id: initialBizId,
-      stage: 'name',
+      stage: 'consent',
       full_name: '',
       first_name: '',
-      last_name: '',
-      city: '',
-      pickup_date: '',
-      return_date: '',
-      rental_days: 0,
       phone: '',
-      luxury_filter: 'all',
+      email: '',
+      zipcode: '',
+      current_vehicle_type: '',
+      contract_company: '',
+      contract_expiry: '',
+      citizen_status: '',
+      start_date: '',
+      end_date: '',
+      rental_days: 0,
+      interest_form_type: '',
       fleet_results: [],
       car_id: '',
       car_make: '',
       car_model: '',
       car_luxury: '',
       price_per_day: 0,
-      address: '',
-      landmark: '',
-      pincode: '',
-      location: '',
-      insurance_plan: 'No insurance',
-      insurance_price: 0,
       total_price: 0,
       history: [],
     };
@@ -64,6 +62,71 @@
 
   function wait(ms) {
     return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  function setCookie(name, value, days) {
+    const expires = new Date(Date.now() + days * 86400000).toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`;
+  }
+
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function getConsentChoice() {
+    return localStorage.getItem(consentKey) || getCookie(cookieName) || '';
+  }
+
+  function setConsentChoice(value) {
+    localStorage.setItem(consentKey, value);
+    setCookie(cookieName, value, 180);
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(draftKey);
+  }
+
+  function saveDraft() {
+    if (getConsentChoice() !== 'accepted') return;
+    const payload = {
+      state: {
+        biz_id: activeBizId(),
+        stage: state.stage,
+        full_name: state.full_name,
+        first_name: state.first_name,
+        phone: state.phone,
+        email: state.email,
+        zipcode: state.zipcode,
+        current_vehicle_type: state.current_vehicle_type,
+        contract_company: state.contract_company,
+        contract_expiry: state.contract_expiry,
+        citizen_status: state.citizen_status,
+        start_date: state.start_date,
+        end_date: state.end_date,
+        rental_days: state.rental_days,
+        interest_form_type: state.interest_form_type,
+        car_id: state.car_id,
+        car_make: state.car_make,
+        car_model: state.car_model,
+        car_luxury: state.car_luxury,
+        price_per_day: state.price_per_day,
+        total_price: state.total_price,
+      },
+      savedAt: Date.now(),
+    };
+    localStorage.setItem(draftKey, JSON.stringify(payload));
+  }
+
+  function loadDraft() {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return parsed && parsed.state ? parsed : null;
+    } catch (error) {
+      return null;
+    }
   }
 
   function escapeHtml(value) {
@@ -92,12 +155,10 @@
   function appendMessage(role, text) {
     const block = document.createElement('div');
     block.className = `assistant-flow-message ${role}`;
-
     const bubble = document.createElement('div');
     bubble.className = 'assistant-flow-bubble';
     bubble.textContent = text;
     block.appendChild(bubble);
-
     thread.appendChild(block);
     scrollToNode(block);
     return block;
@@ -123,7 +184,7 @@
     return node;
   }
 
-  async function assistantBatch(messages, delay = 420) {
+  async function assistantBatch(messages, delay = 380) {
     const typingNode = renderTyping();
     await wait(delay);
     typingNode.remove();
@@ -133,8 +194,17 @@
     });
   }
 
-  async function assistantSay(message, delay = 420) {
+  async function assistantSay(message, delay = 380) {
     await assistantBatch([message], delay);
+  }
+
+  function setComposerEnabled(enabled) {
+    composerInput.disabled = !enabled;
+    composerForm.querySelector('button')?.toggleAttribute('disabled', !enabled);
+  }
+
+  function clearConsentCard() {
+    if (consentRoot) consentRoot.innerHTML = '';
   }
 
   function upsertPanel(key, extraClass = '') {
@@ -168,9 +238,7 @@
     if (!panel) return;
     panel.classList.add('is-complete');
     panel.querySelectorAll('input, button, select, textarea').forEach((element) => {
-      if (element.dataset.keepEnabled === 'true') {
-        return;
-      }
+      if (element.dataset.keepEnabled === 'true') return;
       element.disabled = true;
     });
   }
@@ -178,11 +246,16 @@
   function setStage(stage) {
     state.stage = stage;
     const placeholders = {
+      consent: 'Waiting for your choice...',
+      resume: 'Choose an option below...',
       name: 'Type your full name...',
-      city: 'Type your city...',
-      phone: 'Type your phone number...',
-      fleet: 'Type a preference or choose a car below...',
-      complete: 'Ask Yobo another question or restart...',
+      phone: 'Type your mobile number...',
+      email: 'Type your email address...',
+      zipcode: 'Type your 6-digit zipcode...',
+      vehicle_type: 'Type your current vehicle type...',
+      contract_company: 'Type your current contract company...',
+      fleet: 'Ask for a recommendation or choose a car below...',
+      complete: 'You can ask another question or start again...',
       default: 'Type your reply here...',
     };
     composerInput.placeholder = placeholders[stage] || placeholders.default;
@@ -207,25 +280,29 @@
   }
 
   function bookingDays() {
-    const startDate = parseDate(state.pickup_date);
-    const endDate = parseDate(state.return_date);
+    const startDate = parseDate(state.start_date);
+    const endDate = parseDate(state.end_date);
     if (!startDate || !endDate) return 0;
-    return Math.max(Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)), 1);
+    return Math.max(Math.ceil((endDate - startDate) / 86400000), 1);
   }
 
   function formatCardDate(value) {
     const dateValue = parseDate(value);
     if (!dateValue) return '--';
-    return dateValue.toLocaleDateString('en-GB', {
+    return dateValue.toLocaleDateString('en-SG', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
     });
   }
 
-  function formatAED(amount) {
+  function formatCurrency(amount) {
     const safe = Number.isFinite(amount) ? amount : 0;
-    return `AED ${safe.toLocaleString()}`;
+    return new Intl.NumberFormat('en-SG', {
+      style: 'currency',
+      currency: currencyCode,
+      maximumFractionDigits: 0,
+    }).format(safe);
   }
 
   function cleanNameInput(value) {
@@ -242,56 +319,67 @@
     return {
       full_name: parts.join(' '),
       first_name: parts[0] || '',
-      last_name: parts.slice(1).join(' '),
     };
   }
 
-  function looksLikeHelpIntent(value) {
-    return /(\?|suggest|recommend|recommendation|which|what|how|can you|could you|price|cost|car|cars|fleet|insurance|book|booking|luxury|standard|family|budget|cheap|daily|monthly|yearly)/i.test(
-      String(value || '').trim()
-    );
+  function looksLikeQuestion(value) {
+    return /(\?|suggest|recommend|what|which|how|can you|could you|help|price|quote|fleet|car|cars|luxury|budget|book|booking)/i.test(String(value || '').trim());
   }
 
-  function looksLikeNameAnswer(value) {
-    const cleaned = cleanNameInput(value);
-    if (!cleaned || /\d/.test(cleaned)) {
-      return false;
-    }
-    if (looksLikeHelpIntent(cleaned)) {
-      return false;
-    }
-    return cleaned.split(/\s+/).filter(Boolean).length >= 2;
-  }
-
-  function normalizeCityInput(value) {
-    const normalized = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
-    const aliases = [
-      ['abudhabi', 'Abu Dhabi'],
-      ['dubai', 'Dubai'],
-      ['sharjah', 'Sharjah'],
-      ['rasalkhaimah', 'Ras Al-Khaimah'],
-      ['rak', 'Ras Al-Khaimah'],
-      ['alain', 'Al-Ain'],
-      ['fujairah', 'Fujairah'],
-      ['ajman', 'Ajman'],
-    ];
-    const match = aliases.find(([key]) => normalized === key || normalized.includes(key));
-    return match ? match[1] : '';
-  }
-
-  function normalizePhoneInput(value) {
+  function normalizePhone(value) {
     const match = String(value || '').match(/[+()0-9\s-]{7,}/);
     return match ? match[0].trim() : String(value || '').trim();
   }
 
   function isValidPhone(value) {
-    const digits = normalizePhoneInput(value).replace(/\D/g, '');
-    return digits.length >= 7;
+    const digits = normalizePhone(value).replace(/\D/g, '');
+    return digits.length >= 8;
   }
 
-  function buildLocation() {
-    state.location = [state.address, state.landmark, state.pincode].filter(Boolean).join(', ');
-    return state.location;
+  function normalizeEmail(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function isValidEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
+  }
+
+  function normalizeZipcode(value) {
+    const match = String(value || '').match(/\d{6}/);
+    return match ? match[0] : String(value || '').trim();
+  }
+
+  function isValidZipcode(value) {
+    return /^\d{6}$/.test(normalizeZipcode(value));
+  }
+
+  function normalizeCitizenStatus(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized === 'yes') return 'Yes';
+    if (normalized.includes('permanent') || normalized === 'pr' || normalized === 'yes pr') return 'Yes Permanent Resident';
+    if (normalized === 'no') return 'No';
+    return '';
+  }
+
+  function normalizeInterestType(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    const match = interestTypeOptions.find((option) => option.toLowerCase() === normalized);
+    return match || '';
+  }
+
+  function estimateValues() {
+    const days = bookingDays();
+    const baseRental = Number(state.price_per_day || 0) * days;
+    const subtotal = baseRental + processingFee;
+    const gst = Math.round(subtotal * gstRate);
+    const total = subtotal + gst;
+    state.total_price = total;
+    state.rental_days = days;
+    return { days, baseRental, processingFee, subtotal, gst, total };
+  }
+
+  function fallbackFleetPhoto() {
+    return 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1200&auto=format&fit=crop';
   }
 
   function normalizeLuxuryLabel(value) {
@@ -301,42 +389,11 @@
     return lowered ? lowered.charAt(0).toUpperCase() + lowered.slice(1) : '';
   }
 
-  function refundableDeposit() {
-    const luxury = normalizeLuxuryLabel(state.car_luxury);
-    if (!state.car_id) return 0;
-    return luxury === 'Luxury' ? 5000 : 2000;
-  }
-
-  function estimateValues(insuranceFee = state.insurance_price) {
-    const days = bookingDays();
-    const baseRental = Number(state.price_per_day || 0) * days;
-    const safeInsurance = Number(insuranceFee || 0);
-    const subtotal = baseRental + safeInsurance + processingFee;
-    const vat = Math.round(subtotal * 0.05);
-    const total = subtotal + vat;
-    state.total_price = total;
-    state.rental_days = days;
-    return {
-      days,
-      baseRental,
-      insuranceFee: safeInsurance,
-      processingFee,
-      subtotal,
-      vat,
-      total,
-      deposit: refundableDeposit(),
-    };
-  }
-
-  function fallbackFleetPhoto() {
-    return 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1200&auto=format&fit=crop';
-  }
-
   function fleetCardMarkup(car, suggested = false) {
     const image = escapeHtml(String(car.photo_url || '').trim() || fallbackFleetPhoto());
     const fallback = escapeHtml(fallbackFleetPhoto());
     const title = escapeHtml(`${car.make || ''} ${car.model || ''}`.trim());
-    const luxury = normalizeLuxuryLabel(car.luxury) || 'Standard';
+    const luxury = normalizeLuxuryLabel(car.luxury);
     return `
       <article class="assistant-flow-fleet-card ${suggested ? 'is-suggested' : ''}">
         <div class="assistant-flow-fleet-media">
@@ -345,26 +402,16 @@
         <div class="assistant-flow-fleet-meta">
           ${suggested ? '<span class="assistant-flow-card-tag">Suggested for you</span>' : ''}
           <strong>${title}</strong>
-          <span>${formatAED(Number(car.price_per_day || 0))} per day</span>
-          <span>${escapeHtml(luxury)}</span>
+          <span>${formatCurrency(Number(car.price_per_day || 0))} / day</span>
+          ${luxury ? `<span>${escapeHtml(luxury)}</span>` : ''}
         </div>
-        <button
-          class="btn-black assistant-flow-select"
-          type="button"
-          data-id="${escapeHtml(car.id)}"
-          data-make="${escapeHtml(car.make || '')}"
-          data-model="${escapeHtml(car.model || '')}"
-          data-price="${Number(car.price_per_day || 0)}"
-          data-luxury="${escapeHtml(luxury)}"
-        >
-          Select this car
-        </button>
+        <button class="btn-black assistant-flow-select" type="button" data-id="${escapeHtml(car.id)}" data-make="${escapeHtml(car.make || '')}" data-model="${escapeHtml(car.model || '')}" data-price="${Number(car.price_per_day || 0)}" data-luxury="${escapeHtml(luxury)}">Select this car</button>
       </article>
     `;
   }
 
   function looksLikeSuggestionRequest(text) {
-    return /(suggest|recommend|recommendation|best car|which car|what should|need a car|looking for|budget|affordable|cheap|luxury|family|suv|daily|business|electric|fast|performance)/i.test(text);
+    return /(suggest|recommend|recommendation|best car|which car|what should|need a car|looking for|budget|affordable|cheap|luxury|family|suv|daily|business|electric|fast|performance)/i.test(String(text || ''));
   }
 
   function chooseSuggestedCar(promptText, fleet) {
@@ -373,32 +420,18 @@
     const asc = [...fleet].sort((a, b) => Number(a.price_per_day || 0) - Number(b.price_per_day || 0));
     const desc = [...fleet].sort((a, b) => Number(b.price_per_day || 0) - Number(a.price_per_day || 0));
     const luxuryCars = fleet.filter((car) => normalizeLuxuryLabel(car.luxury) === 'Luxury');
-    const standardCars = fleet.filter((car) => normalizeLuxuryLabel(car.luxury) !== 'Luxury');
 
     const matchByText = (patterns) => fleet.find((car) => {
       const haystack = `${car.make || ''} ${car.model || ''}`.toLowerCase();
       return patterns.some((pattern) => haystack.includes(pattern));
     });
 
-    if (/electric|ev|tesla/.test(lower)) {
-      return matchByText(['tesla']) || asc[0];
-    }
-    if (/family|suv|space|kids|luggage/.test(lower)) {
-      return matchByText(['range rover', 'sport', 'creta', 'urus']) || desc.find((car) => /sport|suv|creta|urus/i.test(`${car.make} ${car.model}`)) || fleet[0];
-    }
-    if (/budget|cheap|affordable|economy|lowest/.test(lower)) {
-      return asc[0];
-    }
-    if (/luxury|premium|business|executive|vip/.test(lower)) {
-      return [...luxuryCars, ...desc].find(Boolean) || desc[0];
-    }
-    if (/fast|sport|performance|fun/.test(lower)) {
-      return matchByText(['911', 'm4', 'lamborghini', 'ferrari', 'mustang']) || desc[0];
-    }
-    if (/daily|city|commute|practical/.test(lower)) {
-      return standardCars.sort((a, b) => Number(a.price_per_day || 0) - Number(b.price_per_day || 0))[0] || asc[0];
-    }
-    return asc[Math.min(1, asc.length - 1)] || asc[0];
+    if (/electric|ev|tesla/.test(lower)) return matchByText(['tesla']) || asc[0];
+    if (/family|suv|space|kids|luggage/.test(lower)) return matchByText(['range rover', 'sport', 'creta', 'urus']) || desc[0];
+    if (/budget|cheap|affordable|economy/.test(lower)) return asc[0];
+    if (/luxury|premium|business|executive|vip/.test(lower)) return luxuryCars[0] || desc[0];
+    if (/fast|sport|performance|fun/.test(lower)) return matchByText(['911', 'm4', 'lamborghini', 'ferrari', 'mustang']) || desc[0];
+    return asc[0];
   }
 
   async function fetchAiReply(message) {
@@ -411,9 +444,8 @@
           history: state.history.slice(-8),
           biz_id: activeBizId(),
           context: {
-            start_date: state.pickup_date,
-            end_date: state.return_date,
-            city: state.city,
+            start_date: state.start_date,
+            end_date: state.end_date,
           },
         }),
       });
@@ -424,46 +456,28 @@
     }
   }
 
+  async function maybeAnswerQuestion(text, reprompt) {
+    if (!looksLikeQuestion(text)) return false;
+    const reply = await fetchAiReply(text);
+    await assistantBatch([
+      reply || 'I can help with that as we go.',
+      reprompt,
+    ]);
+    return true;
+  }
+
   async function fetchFleetResults() {
     const query = new URLSearchParams();
     const bizId = activeBizId();
     if (bizId) query.set('biz_id', bizId);
-    if (state.city) query.set('city', state.city);
-    if (state.pickup_date) query.set('start_date', state.pickup_date);
-    if (state.return_date) query.set('end_date', state.return_date);
-    if (state.luxury_filter !== 'all') query.set('luxury', state.luxury_filter);
-
+    if (state.start_date) query.set('start_date', state.start_date);
+    if (state.end_date) query.set('end_date', state.end_date);
     const response = await fetch(`/api/fleet?${query.toString()}`);
     const payload = await response.json();
-    if (!payload.ok) {
-      throw new Error(payload.error || 'Unable to load fleet.');
-    }
-    if (payload.error) {
-      throw new Error(payload.error);
-    }
+    if (!payload.ok) throw new Error(payload.error || 'Unable to load the fleet.');
+    if (payload.error) throw new Error(payload.error);
     state.fleet_results = Array.isArray(payload.data) ? payload.data : [];
     return state.fleet_results;
-  }
-
-  async function selectedCarStillAvailable() {
-    if (!state.car_id || !state.pickup_date || !state.return_date) {
-      return false;
-    }
-    const query = new URLSearchParams();
-    const bizId = activeBizId();
-    if (bizId) query.set('biz_id', bizId);
-    if (state.city) query.set('city', state.city);
-    query.set('start_date', state.pickup_date);
-    query.set('end_date', state.return_date);
-
-    try {
-      const response = await fetch(`/api/fleet?${query.toString()}`);
-      const payload = await response.json();
-      const fleet = Array.isArray(payload.data) ? payload.data : [];
-      return fleet.some((car) => String(car.id) === String(state.car_id));
-    } catch (error) {
-      return false;
-    }
   }
 
   function selectCarFromButton(button) {
@@ -472,7 +486,7 @@
     state.car_model = button.dataset.model || '';
     state.price_per_day = Number(button.dataset.price || 0);
     state.car_luxury = button.dataset.luxury || '';
-    clearPanelsFrom('quote');
+    saveDraft();
   }
 
   function bindCarSelectButtons(scope) {
@@ -480,8 +494,8 @@
       button.addEventListener('click', async () => {
         selectCarFromButton(button);
         completePanel('fleet');
-        userSay(`I'd like the ${state.car_make} ${state.car_model}.`);
-        await assistantBatch(["Here's an estimated quote for you to book your car"]);
+        userSay(`I want the ${state.car_make} ${state.car_model}.`);
+        await assistantSay("Here's your estimated quote.");
         renderQuotePanel();
         setStage('quote');
       });
@@ -490,441 +504,309 @@
 
   async function renderFleetPanel(suggestedCar = null, suggestionText = '') {
     const body = upsertPanel('fleet', 'assistant-flow-card assistant-flow-card-wide');
-    body.innerHTML = '<div class="assistant-flow-loading">Loading the fleet for your dates...</div>';
-
+    body.innerHTML = '<div class="assistant-flow-loading">Loading the available fleet...</div>';
     try {
       const fleet = await fetchFleetResults();
       if (!fleet.length) {
-        body.innerHTML = `
-          <div class="assistant-flow-empty">
-            No cars are available right now for ${escapeHtml(state.city || 'this branch')} between ${escapeHtml(formatCardDate(state.pickup_date))} and ${escapeHtml(formatCardDate(state.return_date))}.
-          </div>
-        `;
+        body.innerHTML = '<div class="assistant-flow-empty">No vehicles are available for those dates right now.</div>';
         return;
       }
-
-      const suggestionMarkup = suggestedCar
-        ? `
-          <div class="assistant-flow-suggestion-block">
-            ${suggestionText ? `<p class="assistant-chat-panel-note">${escapeHtml(suggestionText)}</p>` : ''}
-            ${fleetCardMarkup(suggestedCar, true)}
-          </div>
-        `
-        : '';
-
+      const suggestionMarkup = suggestedCar ? `
+        <div class="assistant-flow-suggestion-block">
+          ${suggestionText ? `<p class="assistant-chat-panel-note">${escapeHtml(suggestionText)}</p>` : ''}
+          ${fleetCardMarkup(suggestedCar, true)}
+        </div>
+      ` : '';
       body.innerHTML = `
-        <div class="assistant-flow-fleet-status">
-          Showing ${fleet.length} available car${fleet.length === 1 ? '' : 's'} in ${escapeHtml(state.city || 'your branch')} for ${escapeHtml(formatCardDate(state.pickup_date))} to ${escapeHtml(formatCardDate(state.return_date))}.
-        </div>
-        <div class="assistant-flow-fleet-controls">
-          <div class="assistant-flow-luxury-toggle">
-            <button class="assistant-flow-mini-chip ${state.luxury_filter === 'all' ? 'active' : ''}" data-luxury="all" type="button">All</button>
-            <button class="assistant-flow-mini-chip ${state.luxury_filter === 'luxury' ? 'active' : ''}" data-luxury="luxury" type="button">Luxury</button>
-            <button class="assistant-flow-mini-chip ${state.luxury_filter === 'standard' ? 'active' : ''}" data-luxury="standard" type="button">Standard</button>
-          </div>
-        </div>
+        <div class="assistant-flow-fleet-status">Showing ${fleet.length} available vehicle${fleet.length === 1 ? '' : 's'} for ${escapeHtml(formatCardDate(state.start_date))} to ${escapeHtml(formatCardDate(state.end_date))}.</div>
         ${suggestionMarkup}
         <div class="assistant-flow-fleet-grid">
           ${fleet.map((car) => fleetCardMarkup(car)).join('')}
         </div>
       `;
-
-      body.querySelectorAll('[data-luxury]').forEach((button) => {
-        button.addEventListener('click', async () => {
-          state.luxury_filter = button.dataset.luxury || 'all';
-          await renderFleetPanel();
-        });
-      });
-
       bindCarSelectButtons(body);
     } catch (error) {
       body.innerHTML = `<div class="assistant-flow-empty">${escapeHtml(error.message || 'I could not load the fleet right now.')}</div>`;
     }
   }
 
-  function renderSchedulePanel() {
-    const body = upsertPanel('schedule');
+  function renderDatesPanel() {
+    const body = upsertPanel('dates');
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const defaultPickup = state.pickup_date || toIsoDate(tomorrow);
-    const defaultReturn = state.return_date || toIsoDate(new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate() + 1));
-
+    const defaultStart = state.start_date || toIsoDate(tomorrow);
+    const defaultEnd = state.end_date || toIsoDate(new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate() + 1));
     body.innerHTML = `
       <div class="assistant-chat-panel-head">
         <strong>Rental dates</strong>
-        <p class="assistant-chat-panel-note">Choose your from and to dates before you browse the available fleet.</p>
+        <p class="assistant-chat-panel-note">Choose your enquiry period before I show the available fleet.</p>
       </div>
       <div class="assistant-flow-schedule-card">
         <div class="assistant-flow-schedule-grid">
           <label class="assistant-flow-date-card">
-            <span>FROM</span>
-            <input id="assistantPickupDate" type="date" value="${escapeHtml(defaultPickup)}" required />
+            <span>FROM DATE</span>
+            <input id="assistantFromDate" type="date" value="${escapeHtml(defaultStart)}" required />
           </label>
           <div class="assistant-flow-schedule-arrow">to</div>
           <label class="assistant-flow-date-card">
-            <span>TO</span>
-            <input id="assistantReturnDate" type="date" value="${escapeHtml(defaultReturn)}" required />
+            <span>TO DATE</span>
+            <input id="assistantToDate" type="date" value="${escapeHtml(defaultEnd)}" required />
           </label>
         </div>
         <div class="assistant-flow-card-actions center">
-          <button class="btn-black" id="assistantContinueSchedule" type="button">Continue</button>
+          <button class="btn-black" id="assistantContinueDates" type="button">Continue</button>
         </div>
       </div>
     `;
-
-    const pickupInput = body.querySelector('#assistantPickupDate');
-    const returnInput = body.querySelector('#assistantReturnDate');
-    const continueButton = body.querySelector('#assistantContinueSchedule');
+    const fromInput = body.querySelector('#assistantFromDate');
+    const toInput = body.querySelector('#assistantToDate');
+    const continueButton = body.querySelector('#assistantContinueDates');
     const minimumDate = todayIso();
-    pickupInput.min = minimumDate;
-    returnInput.min = pickupInput.value || minimumDate;
+    fromInput.min = minimumDate;
+    toInput.min = fromInput.value || minimumDate;
 
-    pickupInput.addEventListener('change', () => {
-      returnInput.min = pickupInput.value || minimumDate;
-      if (returnInput.value && pickupInput.value && returnInput.value < pickupInput.value) {
-        returnInput.value = pickupInput.value;
+    fromInput.addEventListener('change', () => {
+      toInput.min = fromInput.value || minimumDate;
+      if (toInput.value && fromInput.value && toInput.value < fromInput.value) {
+        toInput.value = fromInput.value;
       }
     });
 
     continueButton.addEventListener('click', async () => {
-      if (!pickupInput.value || !returnInput.value) {
+      if (!fromInput.value || !toInput.value) {
         await assistantSay('Please choose both your from and to dates.');
         return;
       }
-      if (pickupInput.value < minimumDate) {
-        await assistantSay('Your start date cannot be in the past.');
+      if (fromInput.value < minimumDate) {
+        await assistantSay('Your from date cannot be in the past.');
         return;
       }
-      if (returnInput.value < pickupInput.value) {
-        await assistantSay('Your return date cannot be before the start date.');
+      if (toInput.value < fromInput.value) {
+        await assistantSay('Your to date cannot be before your from date.');
         return;
       }
-
-      state.pickup_date = pickupInput.value;
-      state.return_date = returnInput.value;
+      state.start_date = fromInput.value;
+      state.end_date = toInput.value;
       state.rental_days = bookingDays();
-      completePanel('schedule');
-      userSay(`${formatCardDate(state.pickup_date)} to ${formatCardDate(state.return_date)}.`);
-      await assistantBatch(["What's your phone number?"]);
-      setStage('phone');
+      completePanel('dates');
+      saveDraft();
+      userSay(`${formatCardDate(state.start_date)} to ${formatCardDate(state.end_date)}`);
+      await assistantSay('What should I note as your interest form type?');
+      renderInterestTypePanel();
+      setStage('interest_type');
     });
+  }
+
+  function renderInterestTypePanel() {
+    const body = upsertPanel('interest_type');
+    body.innerHTML = `
+      <div class="assistant-chat-panel-head">
+        <strong>Interest form type</strong>
+        <p class="assistant-chat-panel-note">Choose a type below or type one in the chat.</p>
+      </div>
+      <div class="assistant-flow-chip-row">
+        ${interestTypeOptions.map((option) => `<button class="assistant-flow-chip ${state.interest_form_type === option ? 'active' : ''}" type="button" data-interest-type="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join('')}
+      </div>
+    `;
+    body.querySelectorAll('[data-interest-type]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        await completeInterestType(button.dataset.interestType || '');
+      });
+    });
+  }
+
+  async function completeInterestType(value) {
+    const choice = normalizeInterestType(value);
+    if (!choice) {
+      await assistantSay(`Please choose one of these options: ${interestTypeOptions.join(', ')}.`);
+      return;
+    }
+    state.interest_form_type = choice;
+    completePanel('interest_type');
+    saveDraft();
+    userSay(choice);
+    await assistantSay('What is your current contract company?');
+    setStage('contract_company');
+  }
+
+  function renderContractExpiryPanel() {
+    const body = upsertPanel('contract_expiry');
+    const minimumDate = todayIso();
+    const defaultDate = state.contract_expiry || minimumDate;
+    body.innerHTML = `
+      <div class="assistant-chat-panel-head">
+        <strong>Current contract expiry</strong>
+        <p class="assistant-chat-panel-note">Select the expiry date of your current contract.</p>
+      </div>
+      <div class="assistant-flow-schedule-card assistant-flow-single-date">
+        <label class="assistant-flow-date-card assistant-flow-date-card-single">
+          <span>CONTRACT EXPIRY</span>
+          <input id="assistantContractExpiry" type="date" min="${escapeHtml(minimumDate)}" value="${escapeHtml(defaultDate)}" required />
+        </label>
+        <div class="assistant-flow-card-actions center">
+          <button class="btn-black" id="assistantContinueContractExpiry" type="button">Continue</button>
+        </div>
+      </div>
+    `;
+    body.querySelector('#assistantContinueContractExpiry').addEventListener('click', async () => {
+      const value = body.querySelector('#assistantContractExpiry').value;
+      if (!value) {
+        await assistantSay('Please choose your current contract expiry date.');
+        return;
+      }
+      if (value < minimumDate) {
+        await assistantSay('The contract expiry cannot be in the past.');
+        return;
+      }
+      state.contract_expiry = value;
+      completePanel('contract_expiry');
+      saveDraft();
+      userSay(formatCardDate(value));
+      await assistantSay('Are you a Singapore citizen?');
+      renderCitizenPanel();
+      setStage('citizen_status');
+    });
+  }
+
+  function renderCitizenPanel() {
+    const body = upsertPanel('citizen');
+    body.innerHTML = `
+      <div class="assistant-chat-panel-head">
+        <strong>Singapore citizenship</strong>
+        <p class="assistant-chat-panel-note">Choose one below or type your answer in the chat.</p>
+      </div>
+      <div class="assistant-flow-chip-row">
+        ${citizenOptions.map((option) => `<button class="assistant-flow-chip ${state.citizen_status === option ? 'active' : ''}" type="button" data-citizen-status="${escapeHtml(option)}">${escapeHtml(option)}</button>`).join('')}
+      </div>
+    `;
+    body.querySelectorAll('[data-citizen-status]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        await completeCitizenStatus(button.dataset.citizenStatus || '');
+      });
+    });
+  }
+
+  async function completeCitizenStatus(value) {
+    const status = normalizeCitizenStatus(value);
+    if (!status) {
+      await assistantSay(`Please reply with one of these options: ${citizenOptions.join(', ')}.`);
+      return;
+    }
+    state.citizen_status = status;
+    completePanel('citizen');
+    saveDraft();
+    userSay(status);
+    await assistantBatch([
+      "Great! Now it's time for you to choose your dream car! If you'd like, I could suggest a car tailored to your needs."
+    ]);
+    await renderFleetPanel();
+    setStage('fleet');
   }
 
   function renderQuotePanel() {
     const body = upsertPanel('quote');
-    const values = estimateValues(0);
+    const values = estimateValues();
     body.innerHTML = `
       <div class="assistant-chat-panel-head">
         <strong>Estimated quote</strong>
-        <p class="assistant-chat-panel-note">This is your estimate before insurance is added.</p>
+        <p class="assistant-chat-panel-note">This estimate is shown in SGD for the dates and vehicle you selected.</p>
       </div>
       <div class="assistant-flow-quote-card">
         <div class="assistant-flow-detail-grid">
           <div><span>Vehicle</span><strong>${escapeHtml(`${state.car_make} ${state.car_model}`)}</strong></div>
-          <div><span>City</span><strong>${escapeHtml(state.city)}</strong></div>
-          <div><span>Schedule</span><strong>${escapeHtml(`${formatCardDate(state.pickup_date)} to ${formatCardDate(state.return_date)}`)}</strong></div>
-          <div><span>Daily rate</span><strong>${formatAED(Number(state.price_per_day || 0))}</strong></div>
-          <div><span>Rental days</span><strong>${values.days}</strong></div>
-          <div><span>Estimated total</span><strong>${formatAED(values.total)}</strong></div>
+          <div><span>Interest type</span><strong>${escapeHtml(state.interest_form_type)}</strong></div>
+          <div><span>Schedule</span><strong>${escapeHtml(`${formatCardDate(state.start_date)} to ${formatCardDate(state.end_date)}`)}</strong></div>
+          <div><span>Current vehicle type</span><strong>${escapeHtml(state.current_vehicle_type)}</strong></div>
+          <div><span>Daily rate</span><strong>${formatCurrency(Number(state.price_per_day || 0))}</strong></div>
+          <div><span>Estimated total</span><strong>${formatCurrency(values.total)}</strong></div>
         </div>
         <div class="assistant-flow-card-actions center">
           <button class="btn-black" id="assistantContinueQuote" type="button">Continue</button>
         </div>
       </div>
     `;
-
     body.querySelector('#assistantContinueQuote').addEventListener('click', async () => {
       completePanel('quote');
-      await assistantSay('Please enter your pickup address so I can continue with your booking.');
-      renderLocationPanel();
-      setStage('location');
+      await assistantSay('Before you submit, please review your enquiry details.');
+      renderReviewPanel();
+      setStage('review');
     });
   }
 
-  function renderLocationPanel() {
-    const body = upsertPanel('location');
+  function renderReviewPanel() {
+    const body = upsertPanel('review');
     body.innerHTML = `
-      <form class="assistant-flow-form" id="assistantLocationForm">
-        <div class="assistant-chat-panel-head">
-          <strong>Pickup address</strong>
-          <p class="assistant-chat-panel-note">Add the address we should use for this booking.</p>
-        </div>
-        <div class="assistant-flow-fields">
-          <label class="assistant-flow-field">
-            <span>Address *</span>
-            <input name="address" type="text" value="${escapeHtml(state.address)}" placeholder="Enter address" required />
-          </label>
-          <label class="assistant-flow-field">
-            <span>Landmark</span>
-            <input name="landmark" type="text" value="${escapeHtml(state.landmark)}" placeholder="Optional landmark" />
-          </label>
-          <label class="assistant-flow-field">
-            <span>Pincode *</span>
-            <input name="pincode" type="text" value="${escapeHtml(state.pincode)}" placeholder="Enter pincode" required />
-          </label>
-        </div>
-        <div class="assistant-flow-card-actions center">
-          <button class="btn-black" type="submit">Continue</button>
-        </div>
-      </form>
-    `;
-
-    body.querySelector('#assistantLocationForm').addEventListener('submit', async (event) => {
-      event.preventDefault();
-      const form = event.currentTarget;
-      if (!form.reportValidity()) {
-        return;
-      }
-      const formData = new FormData(form);
-      state.address = String(formData.get('address') || '').trim();
-      state.landmark = String(formData.get('landmark') || '').trim();
-      state.pincode = String(formData.get('pincode') || '').trim();
-      buildLocation();
-      completePanel('location');
-      userSay(state.location);
-      await assistantBatch([
-        'Would you like to add an insurance plan to cover any issues that may arise? We offer three tiers of insurance plans covering various contingencies. If not you also have the option to skip insurance.'
-      ]);
-      await renderInsurancePanel();
-      setStage('insurance');
-    });
-  }
-
-  function normalizeInsurance(items) {
-    if (!Array.isArray(items) || !items.length) {
-      return [
-        {
-          name: 'Protection Plan - Basic',
-          price: 150,
-          description: ['50% Accident Coverage'],
-        },
-        {
-          name: 'Protection Plan - Plus',
-          price: 450,
-          description: ['100% Accident Coverage', 'Windshield Damage', 'Tyre Damages'],
-        },
-        {
-          name: 'Protection Plan - Premium',
-          price: 650,
-          description: ['100% Accident Coverage', 'Windshield Damage', 'Tyre Damages', 'Lost Keys', 'Rim Damage'],
-        },
-      ];
-    }
-
-    return items.map((item, index) => {
-      const rawDescription = item.details || item.description || '';
-      return {
-        name: item.plan_name || item.title || item.name || `Protection Plan ${index + 1}`,
-        price: Number(item.price_per_day ?? item.price ?? item.amount ?? 0),
-        description: String(rawDescription)
-          .split(/\n|<br\s*\/?>|;/i)
-          .map((line) => line.replace(/^-/, '').trim())
-          .filter(Boolean),
-      };
-    });
-  }
-
-  async function renderInsurancePanel() {
-    const body = upsertPanel('insurance');
-    body.innerHTML = '<div class="assistant-flow-loading">Loading insurance options...</div>';
-
-    const query = new URLSearchParams();
-    const bizId = activeBizId();
-    if (bizId) query.set('biz_id', bizId);
-
-    try {
-      const response = await fetch(`/api/insurance?${query.toString()}`);
-      const payload = await response.json();
-      const plans = normalizeInsurance(payload.data || []);
-
-      body.innerHTML = `
-        <div class="assistant-flow-insurance-grid">
-          ${plans.map((plan) => `
-            <article class="assistant-flow-insurance-card ${state.insurance_plan === plan.name ? 'selected' : ''}" data-plan="${escapeHtml(plan.name)}" data-price="${Number(plan.price || 0)}" tabindex="0" role="button" aria-pressed="${state.insurance_plan === plan.name ? 'true' : 'false'}">
-              <h3>${escapeHtml(plan.name)}</h3>
-              <div class="assistant-flow-insurance-price">${formatAED(Number(plan.price || 0))}</div>
-              <div class="assistant-flow-insurance-copy">
-                ${(plan.description.length ? plan.description : ['Cover details available on request']).map((line) => `<div>- ${escapeHtml(line)}</div>`).join('')}
-              </div>
-            </article>
-          `).join('')}
-        </div>
-        <div class="assistant-flow-card-actions between assistant-flow-insurance-actions">
-          <button class="btn-skip" id="assistantSkipInsurance" type="button">Skip insurance</button>
-          <button class="btn-black" id="assistantContinueInsurance" type="button">Continue</button>
-        </div>
-      `;
-
-      let selectedCard = Array.from(body.querySelectorAll('.assistant-flow-insurance-card')).find((card) => card.dataset.plan === state.insurance_plan) || null;
-
-      function selectCard(card) {
-        selectedCard = card;
-        body.querySelectorAll('.assistant-flow-insurance-card').forEach((item) => {
-          const active = item === card;
-          item.classList.toggle('selected', active);
-          item.setAttribute('aria-pressed', active ? 'true' : 'false');
-        });
-        if (card) {
-          state.insurance_plan = card.dataset.plan || 'No insurance';
-          state.insurance_price = Number(card.dataset.price || 0);
-        }
-      }
-
-      body.querySelectorAll('.assistant-flow-insurance-card').forEach((card) => {
-        card.addEventListener('click', () => selectCard(card));
-        card.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            selectCard(card);
-          }
-        });
-      });
-
-      body.querySelector('#assistantSkipInsurance').addEventListener('click', async () => {
-        state.insurance_plan = 'No insurance';
-        state.insurance_price = 0;
-        completePanel('insurance');
-        userSay('I will skip insurance.');
-        await assistantBatch(["Before we finish booking let's confirm all your details"]);
-        renderConfirmPanel();
-        setStage('confirm');
-      });
-
-      body.querySelector('#assistantContinueInsurance').addEventListener('click', async () => {
-        if (!selectedCard) {
-          await assistantSay('Please choose an insurance plan or skip it.');
-          return;
-        }
-        completePanel('insurance');
-        userSay(`Add ${state.insurance_plan}.`);
-        await assistantBatch(["Before we finish booking let's confirm all your details"]);
-        renderConfirmPanel();
-        setStage('confirm');
-      });
-    } catch (error) {
-      body.innerHTML = '<div class="assistant-flow-empty">I could not load insurance plans right now.</div>';
-    }
-  }
-
-  function renderConfirmPanel() {
-    const body = upsertPanel('confirm');
-    body.innerHTML = `
-      <form class="assistant-flow-form" id="assistantConfirmForm">
+      <form class="assistant-flow-form" id="assistantReviewForm">
         <div class="assistant-chat-panel-head">
           <strong>Review your details</strong>
-          <p class="assistant-chat-panel-note">Update anything below if you need to before we finish the booking.</p>
+          <p class="assistant-chat-panel-note">You can edit any detail below before submitting your interest.</p>
         </div>
         <div class="assistant-flow-fields two-col">
-          <label class="assistant-flow-field assistant-flow-field-span">
-            <span>Full name *</span>
-            <input name="full_name" type="text" value="${escapeHtml(state.full_name)}" required />
-          </label>
-          <label class="assistant-flow-field">
-            <span>City *</span>
-            <input name="city" type="text" value="${escapeHtml(state.city)}" required />
-          </label>
-          <label class="assistant-flow-field">
-            <span>Phone *</span>
-            <input name="phone" type="text" value="${escapeHtml(state.phone)}" required />
-          </label>
-          <label class="assistant-flow-field">
-            <span>From *</span>
-            <input name="pickup_date" type="date" value="${escapeHtml(state.pickup_date)}" required />
-          </label>
-          <label class="assistant-flow-field">
-            <span>To *</span>
-            <input name="return_date" type="date" value="${escapeHtml(state.return_date)}" required />
-          </label>
-          <label class="assistant-flow-field assistant-flow-field-span">
-            <span>Address *</span>
-            <input name="address" type="text" value="${escapeHtml(state.address)}" required />
-          </label>
-          <label class="assistant-flow-field">
-            <span>Landmark</span>
-            <input name="landmark" type="text" value="${escapeHtml(state.landmark)}" />
-          </label>
-          <label class="assistant-flow-field">
-            <span>Pincode *</span>
-            <input name="pincode" type="text" value="${escapeHtml(state.pincode)}" required />
-          </label>
+          <label class="assistant-flow-field"><span>Contact Person Name *</span><input name="full_name" type="text" value="${escapeHtml(state.full_name)}" required /></label>
+          <label class="assistant-flow-field"><span>Contact Person Mobile *</span><input name="phone" type="text" value="${escapeHtml(state.phone)}" required /></label>
+          <label class="assistant-flow-field"><span>Email *</span><input name="email" type="email" value="${escapeHtml(state.email)}" required /></label>
+          <label class="assistant-flow-field"><span>Zipcode *</span><input name="zipcode" type="text" value="${escapeHtml(state.zipcode)}" required /></label>
+          <label class="assistant-flow-field"><span>Current Vehicle Type *</span><input name="current_vehicle_type" type="text" value="${escapeHtml(state.current_vehicle_type)}" required /></label>
+          <label class="assistant-flow-field"><span>Interest Form Type *</span><input name="interest_form_type" type="text" value="${escapeHtml(state.interest_form_type)}" required /></label>
+          <label class="assistant-flow-field"><span>Current Contract Company *</span><input name="contract_company" type="text" value="${escapeHtml(state.contract_company)}" required /></label>
+          <label class="assistant-flow-field"><span>Current Contract Expiry *</span><input name="contract_expiry" type="date" value="${escapeHtml(state.contract_expiry)}" required /></label>
+          <label class="assistant-flow-field"><span>Singapore Citizens *</span><input name="citizen_status" type="text" value="${escapeHtml(state.citizen_status)}" required /></label>
+          <label class="assistant-flow-field"><span>From Date *</span><input name="start_date" type="date" value="${escapeHtml(state.start_date)}" required /></label>
+          <label class="assistant-flow-field"><span>To Date *</span><input name="end_date" type="date" value="${escapeHtml(state.end_date)}" required /></label>
         </div>
         <div class="assistant-flow-card-actions center">
-          <button class="btn-black" type="submit">Continue</button>
+          <button class="btn-black" type="submit">Continue to summary</button>
         </div>
       </form>
     `;
-
-    body.querySelector('#assistantConfirmForm').addEventListener('submit', async (event) => {
+    body.querySelector('#assistantReviewForm').addEventListener('submit', async (event) => {
       event.preventDefault();
       const form = event.currentTarget;
-      if (!form.reportValidity()) {
-        return;
-      }
+      if (!form.reportValidity()) return;
       const formData = new FormData(form);
-      const nameParts = splitFullName(formData.get('full_name'));
-      const normalizedCity = normalizeCityInput(formData.get('city'));
-      const phone = normalizePhoneInput(formData.get('phone'));
-      const pickupDate = String(formData.get('pickup_date') || '').trim();
-      const returnDate = String(formData.get('return_date') || '').trim();
-      const address = String(formData.get('address') || '').trim();
-      const landmark = String(formData.get('landmark') || '').trim();
-      const pincode = String(formData.get('pincode') || '').trim();
+      const name = splitFullName(formData.get('full_name'));
+      const phone = normalizePhone(formData.get('phone'));
+      const email = normalizeEmail(formData.get('email'));
+      const zipcode = normalizeZipcode(formData.get('zipcode'));
+      const vehicleType = String(formData.get('current_vehicle_type') || '').trim();
+      const interestType = normalizeInterestType(formData.get('interest_form_type'));
+      const contractCompany = String(formData.get('contract_company') || '').trim();
+      const contractExpiry = String(formData.get('contract_expiry') || '').trim();
+      const citizenStatus = normalizeCitizenStatus(formData.get('citizen_status'));
+      const startDate = String(formData.get('start_date') || '').trim();
+      const endDate = String(formData.get('end_date') || '').trim();
       const minimumDate = todayIso();
 
-      if (!nameParts.full_name) {
-        await assistantSay('Please enter your full name.');
-        return;
-      }
-      if (!normalizedCity) {
-        await assistantSay(`I can currently route bookings for ${supportedCities.join(', ')}. Please type one of those cities.`);
-        return;
-      }
-      if (!isValidPhone(phone)) {
-        await assistantSay('Please enter a valid phone number.');
-        return;
-      }
-      if (pickupDate < minimumDate) {
-        await assistantSay('The start date cannot be in the past.');
-        return;
-      }
-      if (returnDate < pickupDate) {
-        await assistantSay('The return date cannot be before the start date.');
-        return;
-      }
+      if (!name.full_name) return void await assistantSay('Please enter your full name.');
+      if (!isValidPhone(phone)) return void await assistantSay('Please enter a valid mobile number.');
+      if (!isValidEmail(email)) return void await assistantSay('Please enter a valid email address.');
+      if (!isValidZipcode(zipcode)) return void await assistantSay('Please enter a valid 6-digit Singapore zipcode.');
+      if (!vehicleType) return void await assistantSay('Please enter your current vehicle type.');
+      if (!interestType) return void await assistantSay(`Please use one of these interest form types: ${interestTypeOptions.join(', ')}.`);
+      if (!contractCompany) return void await assistantSay('Please enter your current contract company.');
+      if (!contractExpiry || contractExpiry < minimumDate) return void await assistantSay('Please choose a valid current contract expiry date.');
+      if (!citizenStatus) return void await assistantSay(`Please choose one of these options: ${citizenOptions.join(', ')}.`);
+      if (!startDate || !endDate) return void await assistantSay('Please choose your from and to dates.');
+      if (startDate < minimumDate) return void await assistantSay('Your from date cannot be in the past.');
+      if (endDate < startDate) return void await assistantSay('Your to date cannot be before your from date.');
 
-      const previous = { ...state };
-      state.full_name = nameParts.full_name;
-      state.first_name = nameParts.first_name;
-      state.last_name = nameParts.last_name;
-      state.city = normalizedCity;
+      state.full_name = name.full_name;
+      state.first_name = name.first_name;
       state.phone = phone;
-      state.pickup_date = pickupDate;
-      state.return_date = returnDate;
-      state.address = address;
-      state.landmark = landmark;
-      state.pincode = pincode;
-      buildLocation();
-
-      const stillAvailable = await selectedCarStillAvailable();
-      if (!stillAvailable) {
-        Object.assign(state, previous);
-        state.car_id = '';
-        state.car_make = '';
-        state.car_model = '';
-        state.price_per_day = 0;
-        state.car_luxury = '';
-        clearPanelsFrom('fleet');
-        await assistantSay('That car is not available for the updated dates or city. Please choose another available car.');
-        await renderFleetPanel();
-        setStage('fleet');
-        return;
-      }
-
-      completePanel('confirm');
-      userSay('Everything looks correct.');
-      await assistantBatch([
-        "Here's your booking summary complete with the safety deposit that will be refunded once the car has been returned."
-      ]);
+      state.email = email;
+      state.zipcode = zipcode;
+      state.current_vehicle_type = vehicleType;
+      state.interest_form_type = interestType;
+      state.contract_company = contractCompany;
+      state.contract_expiry = contractExpiry;
+      state.citizen_status = citizenStatus;
+      state.start_date = startDate;
+      state.end_date = endDate;
+      state.rental_days = bookingDays();
+      completePanel('review');
+      saveDraft();
+      userSay('These details look good.');
+      await assistantSay("Here's your enquiry summary.");
       renderSummaryPanel();
       setStage('summary');
     });
@@ -935,52 +817,62 @@
     const values = estimateValues();
     body.innerHTML = `
       <div class="assistant-flow-summary">
-        <div class="assistant-flow-summary-row"><span>Name</span><span>${escapeHtml(state.full_name)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Phone</span><span>${escapeHtml(state.phone)}</span></div>
-        <div class="assistant-flow-summary-row"><span>City</span><span>${escapeHtml(state.city)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Vehicle</span><span>${escapeHtml(`${state.car_make} ${state.car_model}`)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Schedule</span><span>${escapeHtml(`${formatCardDate(state.pickup_date)} to ${formatCardDate(state.return_date)}`)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Pick-up address</span><span>${escapeHtml(state.location)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Contact Person Name</span><span>${escapeHtml(state.full_name)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Contact Person Mobile</span><span>${escapeHtml(state.phone)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Email</span><span>${escapeHtml(state.email)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Zipcode</span><span>${escapeHtml(state.zipcode)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Current Vehicle Type</span><span>${escapeHtml(state.current_vehicle_type)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Current Contract Company</span><span>${escapeHtml(state.contract_company)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Current Contract Expiry</span><span>${escapeHtml(formatCardDate(state.contract_expiry))}</span></div>
+        <div class="assistant-flow-summary-row"><span>Singapore Citizens</span><span>${escapeHtml(state.citizen_status)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Interest Form Type</span><span>${escapeHtml(state.interest_form_type)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Selected Vehicle</span><span>${escapeHtml(`${state.car_make} ${state.car_model}`)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Schedule</span><span>${escapeHtml(`${formatCardDate(state.start_date)} to ${formatCardDate(state.end_date)}`)}</span></div>
         <div class="assistant-flow-summary-divider"></div>
-        <div class="assistant-flow-summary-row"><span>Base rental</span><span>${formatAED(values.baseRental)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Insurance fee</span><span>${formatAED(values.insuranceFee)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Processing fee</span><span>${formatAED(values.processingFee)}</span></div>
-        <div class="assistant-flow-summary-divider"></div>
-        <div class="assistant-flow-summary-row"><strong>Subtotal</strong><span>${formatAED(values.subtotal)}</span></div>
-        <div class="assistant-flow-summary-row"><span>VAT (5%)</span><span>${formatAED(values.vat)}</span></div>
-        <div class="assistant-flow-summary-row total"><strong>Total</strong><span>${formatAED(values.total)}</span></div>
-        <div class="assistant-flow-summary-divider"></div>
-        <div class="assistant-flow-summary-row"><span>Refundable safety deposit</span><span>${formatAED(values.deposit)}</span></div>
-        <p class="assistant-chat-summary-note">The refundable safety deposit is shown separately and will be returned once the car has been handed back in line with the rental terms.</p>
+        <div class="assistant-flow-summary-row"><span>Base estimate</span><span>${formatCurrency(values.baseRental)}</span></div>
+        <div class="assistant-flow-summary-row"><span>Processing fee</span><span>${formatCurrency(values.processingFee)}</span></div>
+        <div class="assistant-flow-summary-row"><span>GST (9%)</span><span>${formatCurrency(values.gst)}</span></div>
+        <div class="assistant-flow-summary-row total"><strong>Estimated total</strong><span>${formatCurrency(values.total)}</span></div>
+        <p class="assistant-chat-summary-note">Your enquiry estimate is shown in SGD and will be shared with our team together with the details above.</p>
         <div class="assistant-flow-card-actions center">
-          <button class="btn-black" id="assistantConfirmBooking" type="button">Confirm Booking</button>
+          <button class="btn-black" id="assistantSubmitInterest" type="button">Submit Interest</button>
         </div>
-        <div class="summary-status" id="assistantConfirmStatus"></div>
+        <div class="summary-status" id="assistantSubmitStatus"></div>
         <div class="assistant-flow-card-actions center assistant-flow-summary-restart-row">
-          <button class="btn-outline assistant-flow-summary-restart" id="assistantRestartBooking" data-keep-enabled="true" type="button">Restart</button>
+          <button class="btn-outline assistant-flow-summary-restart" id="assistantRestartFlow" data-keep-enabled="true" type="button">Start again</button>
         </div>
       </div>
     `;
 
-    body.querySelector('#assistantRestartBooking').addEventListener('click', resetFlow);
-    body.querySelector('#assistantConfirmBooking').addEventListener('click', async () => {
-      const status = body.querySelector('#assistantConfirmStatus');
-      const button = body.querySelector('#assistantConfirmBooking');
+    body.querySelector('#assistantRestartFlow').addEventListener('click', async () => {
+      clearDraft();
+      await resetFlow();
+    });
+
+    body.querySelector('#assistantSubmitInterest').addEventListener('click', async () => {
+      const status = body.querySelector('#assistantSubmitStatus');
+      const button = body.querySelector('#assistantSubmitInterest');
       button.disabled = true;
-      status.textContent = 'Saving booking...';
+      status.textContent = 'Submitting enquiry...';
       status.className = 'summary-status pending';
 
       const payload = {
         biz_id: activeBizId(),
         customer_name: state.full_name,
         phone: state.phone,
-        total_price: state.total_price,
-        start_date: state.pickup_date,
-        end_date: state.return_date,
-        city: state.city,
+        city: 'Singapore',
+        start_date: state.start_date,
+        end_date: state.end_date,
         car_id: state.car_id,
-        location: state.location,
-        insurance: state.insurance_plan || 'No insurance',
+        total_price: state.total_price,
+        location: state.zipcode,
+        insurance: 'No insurance',
+        email: state.email,
+        current_vehicle_type: state.current_vehicle_type,
+        contract_company: state.contract_company,
+        contract_expiry: state.contract_expiry,
+        citizen_status: state.citizen_status,
+        interest_form_type: state.interest_form_type,
       };
 
       try {
@@ -991,20 +883,21 @@
         });
         const result = await response.json();
         if (!result.ok) {
-          status.textContent = result.error || 'Booking failed.';
+          status.textContent = result.error || 'Submission failed.';
           status.className = 'summary-status error';
           button.disabled = false;
           return;
         }
         completePanel('summary');
-        status.textContent = 'Booking confirmed.';
+        clearDraft();
+        status.textContent = 'Interest form submitted.';
         status.className = 'summary-status success';
         await assistantBatch([
-          'Once you finish one of our consultants will call you within 48 hours to confirm your booking. Thank you for booking with us. Happy driving!'
+          'Thank you. One of our consultants will contact you soon to continue your Veep enquiry.'
         ]);
         setStage('complete');
       } catch (error) {
-        status.textContent = 'Booking failed. Please try again.';
+        status.textContent = 'Submission failed. Please try again.';
         status.className = 'summary-status error';
         button.disabled = false;
       }
@@ -1012,99 +905,107 @@
   }
 
   async function handleNameInput(text) {
-    if (!looksLikeNameAnswer(text)) {
-      if (looksLikeHelpIntent(text)) {
-        const reply = await fetchAiReply(text);
-        await assistantBatch([
-          reply || 'I can absolutely help with suggestions and pricing as we go.',
-          'First, please enter your full name.'
-        ]);
-        return;
-      }
-      await assistantSay('Please enter your full name so I can continue with the booking.');
+    if (await maybeAnswerQuestion(text, 'Please enter your full name.')) return;
+    const name = splitFullName(text);
+    if (!name.full_name || name.full_name.split(/\s+/).length < 2) {
+      await assistantSay('Please enter your full name so I can continue.');
       return;
     }
-    const nameParts = splitFullName(text);
-    state.full_name = nameParts.full_name;
-    state.first_name = nameParts.first_name;
-    state.last_name = nameParts.last_name;
+    state.full_name = name.full_name;
+    state.first_name = name.first_name;
+    saveDraft();
     await assistantBatch([
-      `Nice to meet you ${state.first_name}, let's get some details before you choose your car`,
-      'Which city are you from?'
+      `Nice to meet you ${state.first_name}. What is your mobile number?`
     ]);
-    setStage('city');
-  }
-
-  async function handleCityInput(text) {
-    const normalizedCity = normalizeCityInput(text);
-    if (!normalizedCity) {
-      if (looksLikeHelpIntent(text)) {
-        const reply = await fetchAiReply(text);
-        await assistantBatch([
-          reply || 'I can help with that too.',
-          `Before I show the right branch fleet, please type one of these cities: ${supportedCities.join(', ')}.`
-        ]);
-        return;
-      }
-      await assistantSay(`I can currently route bookings for ${supportedCities.join(', ')}. Please type one of those cities.`);
-      return;
-    }
-    state.city = normalizedCity;
-    await assistantBatch(['How long do you want to rent?']);
-    renderSchedulePanel();
-    setStage('schedule');
+    setStage('phone');
   }
 
   async function handlePhoneInput(text) {
+    if (await maybeAnswerQuestion(text, 'Please enter your mobile number next.')) return;
     if (!isValidPhone(text)) {
-      if (looksLikeHelpIntent(text)) {
-        const reply = await fetchAiReply(text);
-        await assistantBatch([
-          reply || 'Happy to help.',
-          "Please send your phone number next so I can continue."
-        ]);
-        return;
-      }
-      await assistantSay('Please enter a valid phone number.');
+      await assistantSay('Please enter a valid mobile number.');
       return;
     }
-    state.phone = normalizePhoneInput(text);
-    await assistantBatch([
-      "Great! Now it's time for you to choose your dream car! If you'd like, I could suggest a car tailored to your needs."
-    ]);
-    await renderFleetPanel();
-    setStage('fleet');
+    state.phone = normalizePhone(text);
+    saveDraft();
+    await assistantSay('What is your email address?');
+    setStage('email');
+  }
+
+  async function handleEmailInput(text) {
+    if (await maybeAnswerQuestion(text, 'Please enter your email address next.')) return;
+    if (!isValidEmail(text)) {
+      await assistantSay('Please enter a valid email address.');
+      return;
+    }
+    state.email = normalizeEmail(text);
+    saveDraft();
+    await assistantSay('What is your 6-digit Singapore zipcode?');
+    setStage('zipcode');
+  }
+
+  async function handleZipcodeInput(text) {
+    if (await maybeAnswerQuestion(text, 'Please enter your 6-digit Singapore zipcode.')) return;
+    if (!isValidZipcode(text)) {
+      await assistantSay('Please enter a valid 6-digit Singapore zipcode.');
+      return;
+    }
+    state.zipcode = normalizeZipcode(text);
+    saveDraft();
+    await assistantSay('What is your current vehicle type?');
+    setStage('vehicle_type');
+  }
+
+  async function handleVehicleTypeInput(text) {
+    if (await maybeAnswerQuestion(text, 'Please tell me your current vehicle type.')) return;
+    const value = String(text || '').trim();
+    if (!value) {
+      await assistantSay('Please tell me your current vehicle type.');
+      return;
+    }
+    state.current_vehicle_type = value;
+    saveDraft();
+    await assistantSay('How long would you like the enquiry to run for? Please choose your from and to dates.');
+    renderDatesPanel();
+    setStage('dates');
+  }
+
+  async function handleContractCompanyInput(text) {
+    if (await maybeAnswerQuestion(text, 'Please tell me your current contract company.')) return;
+    const value = String(text || '').trim();
+    if (!value) {
+      await assistantSay('Please tell me your current contract company.');
+      return;
+    }
+    state.contract_company = value;
+    saveDraft();
+    await assistantSay('Please select your current contract expiry date.');
+    renderContractExpiryPanel();
+    setStage('contract_expiry');
   }
 
   async function handleFleetInput(text) {
-    if (!state.fleet_results.length) {
-      await renderFleetPanel();
-    }
-    if (/^(no|skip|show normal|show all|just show|browse|view fleet)/i.test(text.trim())) {
+    if (!state.fleet_results.length) await renderFleetPanel();
+    if (/^(show all|browse|view fleet|normal fleet|skip suggestion|no thanks|no suggestion)/i.test(text.trim())) {
       await assistantSay('Absolutely. Browse the available fleet below and choose the one you like.');
       if (panels.fleet) scrollToNode(panels.fleet);
       return;
     }
-
     if (!looksLikeSuggestionRequest(text)) {
       const reply = await fetchAiReply(text);
-      await assistantSay(reply || 'You can type what kind of car you want, or simply select one from the fleet below.');
+      await assistantSay(reply || `You can ask me for a recommendation, for example: ${fleetPromptExamples.join(', ')}.`);
       return;
     }
-
     const suggestion = chooseSuggestedCar(text, state.fleet_results);
     const aiReply = await fetchAiReply(text);
     if (!suggestion) {
-      await assistantSay(aiReply || 'I do not have a strong match yet, so please browse the available fleet below.');
+      await assistantSay(aiReply || 'I do not have a clear match yet, so please browse the available fleet below.');
       return;
     }
     await assistantBatch([
       aiReply || `Based on what you need, I'd recommend the ${suggestion.make} ${suggestion.model}.`
     ]);
-    await renderFleetPanel(
-      suggestion,
-      `This is my best match for what you asked for. You can select it directly or keep browsing the full fleet below.`
-    );
+    await renderFleetPanel(suggestion, 'This is my best match based on your request.');
   }
 
   async function handleGeneralQuestion(text) {
@@ -1113,43 +1014,220 @@
       await assistantSay(reply);
       return;
     }
-    await assistantSay('I can help with your booking here. If a card is open, complete that step or ask me for a car suggestion.');
+    await assistantSay('I can help with your enquiry here. If a card is open, complete that step or ask me for a vehicle suggestion.');
   }
 
   async function handleComposerSubmit(text) {
     const trimmed = String(text || '').trim();
     if (!trimmed) return;
-    userSay(trimmed);
+    if (state.stage !== 'consent' && state.stage !== 'resume') {
+      userSay(trimmed);
+    }
 
-    if (state.stage === 'name') {
-      await handleNameInput(trimmed);
+    if (state.stage === 'name') return handleNameInput(trimmed);
+    if (state.stage === 'phone') return handlePhoneInput(trimmed);
+    if (state.stage === 'email') return handleEmailInput(trimmed);
+    if (state.stage === 'zipcode') return handleZipcodeInput(trimmed);
+    if (state.stage === 'vehicle_type') return handleVehicleTypeInput(trimmed);
+    if (state.stage === 'interest_type') return completeInterestType(trimmed);
+    if (state.stage === 'contract_company') return handleContractCompanyInput(trimmed);
+    if (state.stage === 'citizen_status') return completeCitizenStatus(trimmed);
+    if (state.stage === 'fleet') return handleFleetInput(trimmed);
+    return handleGeneralQuestion(trimmed);
+  }
+
+  function renderConsentCard() {
+    if (!consentRoot) return;
+    consentRoot.innerHTML = `
+      <section class="assistant-flow-consent-card">
+        <strong>Save progress on this device?</strong>
+        <p>With your permission, Veep can use cookies and device storage to remember your enquiry so you can resume later on this same browser.</p>
+        <div class="assistant-flow-card-actions center">
+          <button class="btn-outline" id="assistantConsentDecline" type="button">Not now</button>
+          <button class="btn-black" id="assistantConsentAccept" type="button">Allow and continue</button>
+        </div>
+      </section>
+    `;
+    document.getElementById('assistantConsentAccept')?.addEventListener('click', async () => {
+      setConsentChoice('accepted');
+      clearConsentCard();
+      await beginAfterConsent();
+    });
+    document.getElementById('assistantConsentDecline')?.addEventListener('click', async () => {
+      setConsentChoice('declined');
+      clearDraft();
+      clearConsentCard();
+      await beginAfterConsent();
+    });
+  }
+
+  function renderResumeCard(saved) {
+    if (!consentRoot) return;
+    const savedTime = saved?.savedAt ? new Date(saved.savedAt).toLocaleString('en-SG') : '';
+    consentRoot.innerHTML = `
+      <section class="assistant-flow-consent-card">
+        <strong>Resume your saved enquiry?</strong>
+        <p>I found a saved Veep enquiry on this device${savedTime ? ` from ${escapeHtml(savedTime)}` : ''}. Would you like to continue where you left off?</p>
+        <div class="assistant-flow-card-actions center">
+          <button class="btn-outline" id="assistantResumeFresh" type="button">Start fresh</button>
+          <button class="btn-black" id="assistantResumeContinue" type="button">Resume enquiry</button>
+        </div>
+      </section>
+    `;
+    document.getElementById('assistantResumeFresh')?.addEventListener('click', async () => {
+      clearDraft();
+      clearConsentCard();
+      await startFreshIntro();
+    });
+    document.getElementById('assistantResumeContinue')?.addEventListener('click', async () => {
+      clearConsentCard();
+      await resumeFromDraft(saved.state);
+    });
+  }
+
+  async function startFreshIntro() {
+    thread.innerHTML = '';
+    Object.keys(panels).forEach((key) => delete panels[key]);
+    composerInput.value = '';
+    if (!activeBizId()) {
+      setStage('complete');
+      setComposerEnabled(false);
+      await assistantBatch([
+        'This Veep enquiry link is missing business details. Please use the correct business link before continuing.'
+      ]);
       return;
     }
-    if (state.stage === 'city') {
-      await handleCityInput(trimmed);
+    setComposerEnabled(true);
+    setStage('name');
+    await assistantBatch([
+      "Hello I'm Yobo! Your AI-powered booking assistant.",
+      'Please enter your full name.'
+    ]);
+  }
+
+  async function resumeFromDraft(savedState) {
+    Object.assign(state, buildInitialState(), savedState || {});
+    thread.innerHTML = '';
+    Object.keys(panels).forEach((key) => delete panels[key]);
+    composerInput.value = '';
+    setComposerEnabled(true);
+    await assistantBatch([
+      `Welcome back${state.first_name ? `, ${state.first_name}` : ''}. I’ve restored your enquiry on this device.`
+    ]);
+
+    if (!state.full_name) {
+      setStage('name');
+      await assistantSay('Please enter your full name.');
       return;
     }
-    if (state.stage === 'phone') {
-      await handlePhoneInput(trimmed);
+    if (!state.phone) {
+      setStage('phone');
+      await assistantSay('Please enter your mobile number.');
       return;
     }
-    if (state.stage === 'fleet') {
-      await handleFleetInput(trimmed);
+    if (!state.email) {
+      setStage('email');
+      await assistantSay('Please enter your email address.');
       return;
     }
-    await handleGeneralQuestion(trimmed);
+    if (!state.zipcode) {
+      setStage('zipcode');
+      await assistantSay('Please enter your 6-digit Singapore zipcode.');
+      return;
+    }
+    if (!state.current_vehicle_type) {
+      setStage('vehicle_type');
+      await assistantSay('Please tell me your current vehicle type.');
+      return;
+    }
+    if (!state.start_date || !state.end_date) {
+      setStage('dates');
+      await assistantSay('Please choose your from and to dates.');
+      renderDatesPanel();
+      return;
+    }
+    completePanel('dates');
+    if (!state.interest_form_type) {
+      setStage('interest_type');
+      await assistantSay('Please choose your interest form type.');
+      renderInterestTypePanel();
+      return;
+    }
+    completePanel('interest_type');
+    if (!state.contract_company) {
+      setStage('contract_company');
+      await assistantSay('Please tell me your current contract company.');
+      return;
+    }
+    if (!state.contract_expiry) {
+      setStage('contract_expiry');
+      await assistantSay('Please choose your current contract expiry date.');
+      renderContractExpiryPanel();
+      return;
+    }
+    completePanel('contract_expiry');
+    if (!state.citizen_status) {
+      setStage('citizen_status');
+      await assistantSay('Please confirm your Singapore citizenship status.');
+      renderCitizenPanel();
+      return;
+    }
+    completePanel('citizen');
+    if (!state.car_id) {
+      setStage('fleet');
+      await assistantSay('Let’s continue with the available fleet.');
+      await renderFleetPanel();
+      return;
+    }
+    await renderFleetPanel();
+    completePanel('fleet');
+    renderQuotePanel();
+    if (state.stage === 'quote') {
+      setStage('quote');
+      return;
+    }
+    completePanel('quote');
+    renderReviewPanel();
+    if (state.stage === 'review') {
+      setStage('review');
+      return;
+    }
+    completePanel('review');
+    renderSummaryPanel();
+    setStage(state.stage || 'summary');
+  }
+
+  async function beginAfterConsent() {
+    const saved = getConsentChoice() === 'accepted' ? loadDraft() : null;
+    if (saved?.state) {
+      setStage('resume');
+      setComposerEnabled(false);
+      await assistantBatch([
+        'Hello! I found a saved enquiry on this device.'
+      ]);
+      renderResumeCard(saved);
+      return;
+    }
+    await startFreshIntro();
   }
 
   async function resetFlow() {
     Object.assign(state, buildInitialState());
-    thread.innerHTML = '';
-    Object.keys(panels).forEach((key) => delete panels[key]);
-    composerInput.value = '';
-    setStage('name');
-    await assistantBatch([
-      "Hello I'm Yobo! Your AI-powered booking assistant.",
-      'Please enter your full name'
-    ]);
+    if (initialBizId) state.biz_id = initialBizId;
+    clearConsentCard();
+    const consent = getConsentChoice();
+    if (!consent) {
+      thread.innerHTML = '';
+      setStage('consent');
+      setComposerEnabled(false);
+      await assistantBatch([
+        "Hello! I'm Yobo, your Veep enquiry assistant.",
+        'Before we begin, may I save your progress on this device so you can continue later if needed?'
+      ]);
+      renderConsentCard();
+      return;
+    }
+    await beginAfterConsent();
   }
 
   composerForm.addEventListener('submit', async (event) => {
@@ -1157,6 +1235,7 @@
     const text = composerInput.value;
     composerInput.value = '';
     await handleComposerSubmit(text);
+    saveDraft();
   });
 
   resetFlow();

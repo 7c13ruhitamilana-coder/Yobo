@@ -1930,3 +1930,253 @@ h1, h2, h3, .serif {
     min-height: 48px;
   }
 }
+
+/* Veep refresh */
+:root {
+  --ink: #26160a;
+  --muted: #7d6553;
+  --accent: #ffd9b0;
+  --accent-deep: #f59a3c;
+  --border: #f0dcc7;
+  --bg: #fffaf4;
+}
+
+body {
+  background: var(--bg);
+}
+
+.veep-logo {
+  gap: 12px;
+}
+
+.veep-logo-word {
+  position: relative;
+  font-family: 'Playfair Display', serif;
+  font-size: 2rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: #7e7a79;
+}
+
+.veep-logo-mark {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #ffd768 0%, var(--accent-deep) 75%);
+  box-shadow: 0 6px 14px rgba(245, 154, 60, 0.32);
+}
+
+.veep-logo-mark-left {
+  transform: translateY(-8px);
+}
+
+.veep-logo-mark-right {
+  transform: translateY(8px);
+}
+
+.menu a.active {
+  text-decoration-color: var(--accent-deep);
+}
+
+.btn-pill,
+.btn-confirm,
+.btn-black {
+  background: var(--accent-deep);
+  color: #fff;
+  border: 1px solid var(--accent-deep);
+}
+
+.btn-pill .arrow {
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.btn-outline,
+.btn-skip {
+  background: #fff7ef;
+  color: var(--ink);
+  border: 1px solid var(--accent-deep);
+}
+
+.assistant-flow-page {
+  background:
+    radial-gradient(circle at top left, rgba(245, 154, 60, 0.16), transparent 22%),
+    radial-gradient(circle at top right, rgba(255, 214, 157, 0.3), transparent 20%),
+    #fffaf4;
+}
+
+.assistant-chat-window {
+  border: 1px solid rgba(245, 154, 60, 0.16);
+  box-shadow: 0 24px 60px rgba(135, 83, 24, 0.12);
+}
+
+.assistant-flow-consent-card,
+.assistant-flow-card,
+.assistant-flow-schedule-card,
+.assistant-flow-quote-card,
+.assistant-flow-fleet-card,
+.assistant-flow-summary,
+.assistant-flow-detail-grid div {
+  border-color: var(--border);
+}
+
+.assistant-flow-message.assistant .assistant-flow-bubble {
+  background: #fff0df;
+  color: var(--ink);
+}
+
+.assistant-flow-message.user .assistant-flow-bubble {
+  background: var(--accent-deep);
+  color: #fff;
+}
+
+.assistant-flow-bubble-loading {
+  background: #fff0df !important;
+}
+
+.assistant-flow-consent-card {
+  background: #fff6ec;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 22px 24px;
+  margin: 22px 28px 0;
+  box-shadow: 0 14px 30px rgba(135, 83, 24, 0.08);
+}
+
+.assistant-flow-consent-card strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 8px;
+}
+
+.assistant-flow-consent-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.assistant-flow-card {
+  background: #fffdf9;
+  box-shadow: 0 16px 34px rgba(135, 83, 24, 0.08);
+}
+
+.assistant-flow-card.is-complete {
+  opacity: 0.8;
+}
+
+.assistant-flow-field input,
+.assistant-flow-input,
+.assistant-flow-date-card input {
+  background: #fff9f2;
+  border-color: var(--border);
+}
+
+.assistant-flow-field input:focus,
+.assistant-flow-input:focus,
+.assistant-flow-date-card input:focus {
+  border-color: var(--accent-deep);
+  box-shadow: 0 0 0 4px rgba(245, 154, 60, 0.12);
+}
+
+.assistant-flow-chip,
+.assistant-flow-mini-chip {
+  background: #fff7ef;
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.assistant-flow-chip.active,
+.assistant-flow-chip:hover,
+.assistant-flow-mini-chip.active,
+.assistant-flow-mini-chip:hover {
+  background: var(--accent-deep);
+  border-color: var(--accent-deep);
+  color: #fff;
+}
+
+.assistant-flow-schedule-card,
+.assistant-flow-quote-card {
+  background: linear-gradient(180deg, #fffdf9 0%, #fff6ec 100%);
+}
+
+.assistant-flow-date-card {
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
+.assistant-flow-single-date {
+  max-width: 520px;
+}
+
+.assistant-flow-date-card-single {
+  width: 100%;
+}
+
+.assistant-flow-card-tag {
+  background: rgba(245, 154, 60, 0.16);
+  color: #a65f0f;
+}
+
+.assistant-flow-fleet-status {
+  background: #fff3e2;
+  border: 1px solid var(--border);
+  color: #8d5a1f;
+}
+
+.assistant-flow-fleet-grid {
+  align-items: stretch;
+}
+
+.assistant-flow-fleet-card {
+  background: #fffdf9;
+  min-height: 100%;
+}
+
+.assistant-flow-fleet-card.is-suggested {
+  border-color: var(--accent-deep);
+  box-shadow: 0 16px 34px rgba(245, 154, 60, 0.18);
+}
+
+.assistant-flow-fleet-media {
+  background: #f9ecdd;
+}
+
+.assistant-flow-fleet-media img {
+  width: 100%;
+  height: 228px;
+  object-fit: cover;
+  display: block;
+}
+
+.assistant-flow-fleet-meta {
+  flex: 1;
+}
+
+.assistant-flow-select {
+  margin-top: 8px;
+}
+
+.assistant-flow-summary-divider {
+  border-top-color: var(--border);
+}
+
+.assistant-chat-summary-note {
+  color: var(--muted);
+}
+
+.summary-status.success {
+  color: #2f6d2a;
+}
+
+.summary-status.error {
+  color: #b23a2f;
+}
+
+@media (max-width: 980px) {
+  .veep-logo-word {
+    font-size: 1.6rem;
+  }
+
+  .assistant-flow-consent-card {
+    margin: 18px 18px 0;
+  }
+}

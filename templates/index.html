@@ -3,36 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Smart Car Rentals</title>
+  <title>Veep</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
   <main class="container">
     <nav class="nav">
-      <div class="logo">
-        <svg viewBox="0 0 64 32" aria-hidden="true">
-          <path d="M6 22c6-9 14-14 26-14s20 5 26 14" fill="none" stroke="#111" stroke-width="2" />
-          <circle cx="16" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
-          <circle cx="48" cy="22" r="4" fill="none" stroke="#111" stroke-width="2" />
-        </svg>
-        <span>Smart Car Rentals</span>
+      <div class="logo veep-logo" aria-label="Veep">
+        <span class="veep-logo-mark veep-logo-mark-left"></span>
+        <span class="veep-logo-word">VEEP</span>
+        <span class="veep-logo-mark veep-logo-mark-right"></span>
       </div>
       <div class="menu">
         <a class="active" href="{{ home_href }}">Home</a>
         <a href="{{ fleet_href }}">Our Fleet</a>
-        <a href="{{ assistant_href }}">Book With Yobo</a>
+        <a href="{{ assistant_href }}">Start Enquiry</a>
       </div>
       <div></div>
     </nav>
 
     <section class="hero">
-      <h1>Rent Your Dream Drive in Seconds.</h1>
+      <h1>Find Your Next Drive With Veep.</h1>
       <p>
-        From sleek city sedans to spacious family SUVs, we have the perfect ride for every journey.
-        Transparent pricing. No hidden fees. Just the open road.
+        Browse our available fleet, build a quick SGD estimate, and submit your interest in minutes with Yobo guiding the conversation.
       </p>
       <a class="btn-pill" href="{{ assistant_href }}">
-        Get started now
+        Start your enquiry
         <span class="arrow">&#8594;</span>
       </a>
     </section>

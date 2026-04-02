@@ -71,15 +71,15 @@ DEMO_INSURANCE = [
 
 COMPANIES = {
     "demo": {
-        "company_name": "Smart Car Rentals",
+        "company_name": "Veep",
         "assistant_name": "Yobo",
-        "hero_title": "Rent Your Dream Drive in Seconds.",
-        "hero_subtitle": "From sleek city sedans to spacious family SUVs, transparent pricing. No hidden fees.",
-        "accent": "#ceb7bc",
-        "currency": "AED",
+        "hero_title": "Find Your Next Drive With Veep.",
+        "hero_subtitle": "Browse the fleet, build a quick SGD estimate, and submit your interest with Yobo.",
+        "accent": "#f59a3c",
+        "currency": "SGD",
         "hero_image": "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop",
         "processing_fee": 50,
-        "vat_rate": 0.05,
+        "vat_rate": 0.09,
     }
 }
 
@@ -336,7 +336,7 @@ def format_fleet_lines(fleet: list[dict[str, Any]], limit: int = 8) -> list[str]
         make = item.get("make") or "-"
         model_name = item.get("model") or "-"
         price = item.get("price_per_day") or "-"
-        lines.append(f"{make} {model_name} - AED {price}/day")
+        lines.append(f"{make} {model_name} - SGD {price}/day")
     return lines
 
 
@@ -634,12 +634,12 @@ def api_chat():
         )
 
     system_text = (
-        "You are Yobo, the Smart Car Rentals assistant. "
+        "You are Yobo, the Veep assistant. "
         "Help customers pick cars based on their needs and budget. "
         "Only recommend cars from the fleet list below. "
         "If asked about color, say color info is not available. "
         "If the customer asks to browse the fleet, tell them you can open the fleet page. "
-        "Ask for pickup location and dates if missing. "
+        "Ask for the rental dates if missing. "
         "Keep responses brief and helpful.\n\n"
         f"Selected city: {context_city or 'Not provided'}\n"
         f"Selected start date: {start_date.isoformat() if start_date else 'Not provided'}\n"
