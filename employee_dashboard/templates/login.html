@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Login{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block content %}
+  <main class="login-shell">
+    <section class="login-hero">
+      <p class="eyebrow">Separate employee website</p>
+      <h1>Bookings dashboard for your rental team.</h1>
+      <p class="hero-copy">
+        Staff can sign in with a username and password, review every booking from Supabase,
+        search customers fast, and update confirmation status in one place.
+      </p>
+      <div class="hero-orbit orbit-one"></div>
+      <div class="hero-orbit orbit-two"></div>
+    </section>
+
+    <section class="login-panel">
+      <div class="login-card">
+        <p class="eyebrow">Employee access</p>
+        <h2>Sign in to the dashboard</h2>
+        <p class="panel-copy">Use the employee credentials created in Supabase for your company.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" class="login-form">
+          <label class="field-group">
+            <span>Username</span>
+            <input
+              type="text"
+              name="username"
+              autocomplete="username"
+              value="{{ username }}"
+              placeholder="ops_admin"
+              required
+            />
+          </label>
+
+          <label class="field-group">
+            <span>Password</span>
+            <input
+              type="password"
+              name="password"
+              autocomplete="current-password"
+              placeholder="Enter password"
+              required
+            />
+          </label>
+
+          <button type="submit" class="primary-button">Open dashboard</button>
+        </form>
+      </div>
+    </section>
+  </main>
+{% endblock %}

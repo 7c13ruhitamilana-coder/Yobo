@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Bookings Dashboard{% endblock %}
+{% block body_class %}dashboard-page{% endblock %}
+
+{% block content %}
+  <main class="dashboard-shell">
+    <header class="dashboard-topbar">
+      <div class="title-block">
+        <p class="eyebrow">Employee control center</p>
+        <h1>Bookings Dashboard</h1>
+        <p class="subtitle">
+          Search customers, filter by dates or car model, review payment status,
+          and confirm bookings for {{ employee.company_name or employee.biz_id }}.
+        </p>
+      </div>
+
+      <div class="topbar-side">
+        <div class="employee-chip">
+          <span class="chip-label">Signed in as</span>
+          <strong>{{ employee.full_name or employee.username }}</strong>
+          <span class="chip-meta">{{ employee.company_name or employee.biz_id }}</span>
+        </div>
+        <a class="logout-link" href="{{ url_for('logout') }}">Log out</a>
+      </div>
+    </header>
+
+    <section class="stats-grid" id="statsGrid">
+      <article class="stat-card">
+        <span class="stat-label">Total bookings</span>
+        <strong id="statTotal">0</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">Confirmed</span>
+        <strong id="statConfirmed">0</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">Awaiting confirmation</span>
+        <strong id="statPending">0</strong>
+      </article>
+      <article class="stat-card">
+        <span class="stat-label">Marked paid</span>
+        <strong id="statPaid">0</strong>
+      </article>
+    </section>
+
+    <section class="toolbar-panel">
+      <div class="search-bar">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-3.5-3.5"></path>
+          </svg>
+        </span>
+        <input
+          id="searchInput"
+          type="search"
+          placeholder="Search by customer, phone, location, payment status, or vehicle"
+        />
+      </div>
+
+      <div class="filters-grid">
+        <label class="field-group compact">
+          <span>From date</span>
+          <input id="startDateFilter" type="date" />
+        </label>
+
+        <label class="field-group compact">
+          <span>To date</span>
+          <input id="endDateFilter" type="date" />
+        </label>
+
+        <label class="field-group compact">
+          <span>Car model</span>
+          <select id="carModelFilter">
+            <option value="">All models</option>
+          </select>
+        </label>
+
+        <label class="field-group compact">
+          <span>Confirmation</span>
+          <select id="confirmationFilter">
+            <option value="all">All bookings</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="pending">Not confirmed</option>
+          </select>
+        </label>
+
+        <label class="field-group compact">
+          <span>Payment</span>
+          <select id="paymentFilter">
+            <option value="all">All payments</option>
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="partially paid">Partially Paid</option>
+            <option value="failed">Failed</option>
+          </select>
+        </label>
+
+        <button id="resetFilters" type="button" class="secondary-button">Reset filters</button>
+      </div>
+    </section>
+
+    <div id="feedbackBanner" class="feedback-banner hidden"></div>
+
+    <section class="table-panel">
+      <div class="table-meta">
+        <div>
+          <p class="meta-label">Live booking list</p>
+          <strong id="resultsCount">0 results</strong>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <div class="table-header">
+          <span>S.No.</span>
+          <span>Name</span>
+          <span>Phone Number</span>
+          <span>From Date</span>
+          <span>To Date</span>
+          <span>Car Model</span>
+          <span>Booked For</span>
+          <span>Payment Status</span>
+          <span>Confirmed</span>
+        </div>
+
+        <div id="rowsContainer" class="table-rows"></div>
+
+        <div id="emptyState" class="empty-state hidden">
+          <h3>No bookings match those filters.</h3>
+          <p>Try clearing a filter or searching with a wider term.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    window.dashboardConfig = {
+      bookingsUrl: "{{ url_for('api_dashboard_bookings') }}",
+      updateUrlTemplate: "{{ url_for('api_update_booking_state', booking_id='__BOOKING_ID__') }}"
+    };
+  </script>
+  <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
+{% endblock %}
