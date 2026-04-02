@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Veep</title>
+  <title>{{ company_name }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
   <main class="container">
     <nav class="nav">
-      <div class="logo veep-logo" aria-label="Veep">
+      <div class="logo veep-logo" aria-label="{{ company_name }}">
         <span class="veep-logo-mark veep-logo-mark-left"></span>
-        <span class="veep-logo-word">VEEP</span>
+        <span class="veep-logo-word">{{ brand_wordmark }}</span>
         <span class="veep-logo-mark veep-logo-mark-right"></span>
       </div>
       <div class="menu">
@@ -23,9 +23,9 @@
     </nav>
 
     <section class="hero">
-      <h1>Find Your Next Drive With Veep.</h1>
+      <h1>{{ hero_title }}</h1>
       <p>
-        Browse our available fleet, build a quick SGD estimate, and submit your interest in minutes with Yobo guiding the conversation.
+        {{ hero_subtitle }}
       </p>
       <a class="btn-pill" href="{{ assistant_href }}">
         Start your enquiry

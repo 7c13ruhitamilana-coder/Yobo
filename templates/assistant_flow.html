@@ -3,15 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Veep Enquiry Assistant</title>
+  <title>{{ company_name }} Enquiry Assistant</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-<body class="assistant-flow-page" data-default-biz-id="{{ default_biz_id }}">
+<body
+  class="assistant-flow-page"
+  data-default-biz-id="{{ default_biz_id }}"
+  data-company-name="{{ company_name }}"
+  data-assistant-name="{{ assistant_name }}"
+  data-brand-wordmark="{{ brand_wordmark }}"
+  data-currency="{{ currency }}"
+  data-processing-fee="{{ processing_fee }}"
+  data-gst-rate="{{ vat_rate }}"
+>
   <main class="assistant-flow-shell assistant-flow-shell-chat">
     <nav class="nav">
-      <div class="logo veep-logo" aria-label="Veep">
+      <div class="logo veep-logo" aria-label="{{ company_name }}">
         <span class="veep-logo-mark veep-logo-mark-left"></span>
-        <span class="veep-logo-word">VEEP</span>
+        <span class="veep-logo-word">{{ brand_wordmark }}</span>
         <span class="veep-logo-mark veep-logo-mark-right"></span>
       </div>
       <div class="menu">

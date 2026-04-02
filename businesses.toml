@@ -1,0 +1,33 @@
+default_slug = "veep"
+
+[businesses.veep]
+biz_id = "1b082033-6521-4d04-9c0b-44604fd65993"
+company_name = "Veep"
+brand_wordmark = "VEEP"
+assistant_name = "Veepy"
+hero_title = "Find Your Next Drive With Veep."
+hero_subtitle = "Browse the fleet, build a quick SGD estimate, and submit your interest with Yobo."
+accent = "#f59a3c"
+currency = "SGD"
+hero_image = "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop"
+processing_fee = 50
+vat_rate = 0.09
+
+[businesses.secondbrand]
+biz_id = "383eaf74-bf46-4851-9d69-d8af4423588c"
+company_name = "Second Brand"
+brand_wordmark = "SECOND"
+assistant_name = "Yobo"
+hero_title = "Find Your Next Drive With Second Brand."
+hero_subtitle = "Browse the fleet and submit your enquiry in minutes."
+accent = "#f59a3c"
+currency = "SGD"
+hero_image = "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop"
+processing_fee = 50
+vat_rate = 0.09
+dashboard_provider = "moiboo"
+dashboard_url = "https://dashboard-irzp.onrender.com/dashboard"
+dashboard_label = "Second Brand Moiboo Dashboard"
+dashboard_company_name = "Second Brand Pte Ltd"
+dashboard_branch = "Main Branch"
+dashboard_reference = "secondbrand-main"

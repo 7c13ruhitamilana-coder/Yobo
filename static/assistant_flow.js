@@ -8,10 +8,13 @@
   }
 
   const params = new URLSearchParams(window.location.search);
+  const companyName = document.body.dataset.companyName || 'Veep';
+  const assistantName = document.body.dataset.assistantName || 'Yobo';
+  const brandWordmark = document.body.dataset.brandWordmark || companyName;
   const defaultBizId = document.body.dataset.defaultBizId || '';
-  const currencyCode = 'SGD';
-  const processingFee = 50;
-  const gstRate = 0.09;
+  const currencyCode = document.body.dataset.currency || 'SGD';
+  const processingFee = Number(document.body.dataset.processingFee || 50);
+  const gstRate = Number(document.body.dataset.gstRate || 0.09);
   const consentKey = 'veep_resume_consent';
   const draftKey = 'veep_interest_draft_v2';
   const cookieName = 'veep_resume_consent';
@@ -893,7 +896,7 @@
         status.textContent = 'Interest form submitted.';
         status.className = 'summary-status success';
         await assistantBatch([
-          'Thank you. One of our consultants will contact you soon to continue your Veep enquiry.'
+          `Thank you. One of our consultants will contact you soon to continue your ${companyName} enquiry.`
         ]);
         setStage('complete');
       } catch (error) {
@@ -1041,7 +1044,7 @@
     consentRoot.innerHTML = `
       <section class="assistant-flow-consent-card">
         <strong>Save progress on this device?</strong>
-        <p>With your permission, Veep can use cookies and device storage to remember your enquiry so you can resume later on this same browser.</p>
+        <p>With your permission, ${escapeHtml(companyName)} can use cookies and device storage to remember your enquiry so you can resume later on this same browser.</p>
         <div class="assistant-flow-card-actions center">
           <button class="btn-outline" id="assistantConsentDecline" type="button">Not now</button>
           <button class="btn-black" id="assistantConsentAccept" type="button">Allow and continue</button>
@@ -1067,7 +1070,7 @@
     consentRoot.innerHTML = `
       <section class="assistant-flow-consent-card">
         <strong>Resume your saved enquiry?</strong>
-        <p>I found a saved Veep enquiry on this device${savedTime ? ` from ${escapeHtml(savedTime)}` : ''}. Would you like to continue where you left off?</p>
+        <p>I found a saved ${escapeHtml(companyName)} enquiry on this device${savedTime ? ` from ${escapeHtml(savedTime)}` : ''}. Would you like to continue where you left off?</p>
         <div class="assistant-flow-card-actions center">
           <button class="btn-outline" id="assistantResumeFresh" type="button">Start fresh</button>
           <button class="btn-black" id="assistantResumeContinue" type="button">Resume enquiry</button>
@@ -1093,14 +1096,14 @@
       setStage('complete');
       setComposerEnabled(false);
       await assistantBatch([
-        'This Veep enquiry link is missing business details. Please use the correct business link before continuing.'
+        `This ${companyName} enquiry link is missing business details. Please use the correct business link before continuing.`
       ]);
       return;
     }
     setComposerEnabled(true);
     setStage('name');
     await assistantBatch([
-      "Hello I'm Yobo! Your AI-powered booking assistant.",
+      `Hello I'm ${assistantName}! Your AI-powered booking assistant.`,
       'Please enter your full name.'
     ]);
   }
@@ -1203,7 +1206,7 @@
       setStage('resume');
       setComposerEnabled(false);
       await assistantBatch([
-        'Hello! I found a saved enquiry on this device.'
+        `Hello! I found a saved ${companyName} enquiry on this device.`
       ]);
       renderResumeCard(saved);
       return;
@@ -1221,7 +1224,7 @@
       setStage('consent');
       setComposerEnabled(false);
       await assistantBatch([
-        "Hello! I'm Yobo, your Veep enquiry assistant.",
+        `Hello! I'm ${assistantName}, your ${companyName} enquiry assistant.`,
         'Before we begin, may I save your progress on this device so you can continue later if needed?'
       ]);
       renderConsentCard();

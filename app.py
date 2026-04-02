@@ -69,18 +69,25 @@ DEMO_INSURANCE = [
     },
 ]
 
-COMPANIES = {
-    "demo": {
-        "company_name": "Veep",
-        "assistant_name": "Yobo",
-        "hero_title": "Find Your Next Drive With Veep.",
-        "hero_subtitle": "Browse the fleet, build a quick SGD estimate, and submit your interest with Yobo.",
-        "accent": "#f59a3c",
-        "currency": "SGD",
-        "hero_image": "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop",
-        "processing_fee": 50,
-        "vat_rate": 0.09,
-    }
+DEFAULT_COMPANY = {
+    "company_name": "Veep",
+    "brand_wordmark": "VEEP",
+    "assistant_name": "Yobo",
+    "hero_title": "Find Your Next Drive With Veep.",
+    "hero_subtitle": "Browse the fleet, build a quick SGD estimate, and submit your interest with Yobo.",
+    "accent": "#f59a3c",
+    "currency": "SGD",
+    "hero_image": "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop",
+    "processing_fee": 50,
+    "vat_rate": 0.09,
+    "biz_id": "",
+    "slug": "",
+    "dashboard_provider": "",
+    "dashboard_url": "",
+    "dashboard_label": "",
+    "dashboard_company_name": "",
+    "dashboard_branch": "",
+    "dashboard_reference": "",
 }
 
 
@@ -95,9 +102,80 @@ def load_secrets() -> dict[str, Any]:
         return {}
 
 
+def load_business_profiles() -> tuple[dict[str, dict[str, Any]], str]:
+    fallback = {"veep": DEFAULT_COMPANY.copy()}
+    fallback["veep"]["slug"] = "veep"
+    fallback["veep"]["biz_id"] = get_default_biz_id()
+
+    path = Path(__file__).with_name("businesses.toml")
+    if not path.exists():
+        return fallback, "veep"
+
+    try:
+        with path.open("rb") as f:
+            raw = tomllib.load(f)
+    except Exception:
+        return fallback, "veep"
+
+    raw_businesses = raw.get("businesses")
+    if not isinstance(raw_businesses, dict) or not raw_businesses:
+        return fallback, "veep"
+
+    businesses: dict[str, dict[str, Any]] = {}
+    for raw_slug, config in raw_businesses.items():
+        if not isinstance(config, dict):
+            continue
+        slug = str(raw_slug).strip().lower()
+        if not slug:
+            continue
+        profile = DEFAULT_COMPANY.copy()
+        profile.update(config)
+        profile["slug"] = slug
+        profile["biz_id"] = str(profile.get("biz_id") or "").strip()
+        profile["brand_wordmark"] = str(
+            profile.get("brand_wordmark") or profile.get("company_name") or slug
+        ).strip()
+        businesses[slug] = profile
+
+    if not businesses:
+        return fallback, "veep"
+
+    default_slug = str(
+        os.getenv("DEFAULT_BUSINESS_SLUG")
+        or raw.get("default_slug")
+        or next(iter(businesses))
+    ).strip().lower()
+    if default_slug not in businesses:
+        default_slug = next(iter(businesses))
+    return businesses, default_slug
+
+
 def get_company_config() -> dict[str, Any]:
-    company_key = request.args.get("company", "demo").lower()
-    base = COMPANIES.get(company_key, COMPANIES["demo"]).copy()
+    businesses, default_slug = load_business_profiles()
+    slug = ""
+    if request.view_args:
+        slug = str(request.view_args.get("slug") or "").strip().lower()
+    biz_id = request.args.get("biz_id", "").strip() or get_default_biz_id()
+
+    profile: dict[str, Any] | None = None
+    if slug:
+        profile = businesses.get(slug)
+    if profile is None and biz_id:
+        profile = next(
+            (
+                item
+                for item in businesses.values()
+                if str(item.get("biz_id") or "").strip() == biz_id
+            ),
+            None,
+        )
+    if profile is None:
+        profile = businesses.get(default_slug, DEFAULT_COMPANY.copy())
+
+    base = DEFAULT_COMPANY.copy()
+    base.update(profile)
+    base["slug"] = str(base.get("slug") or slug or default_slug or "").strip().lower()
+    base["biz_id"] = str(base.get("biz_id") or biz_id or get_default_biz_id()).strip()
     if request.args.get("company_name"):
         base["company_name"] = request.args.get("company_name")
     if request.args.get("assistant"):
@@ -107,6 +185,18 @@ def get_company_config() -> dict[str, Any]:
     if request.args.get("currency"):
         base["currency"] = request.args.get("currency")
     return base
+
+
+def get_dashboard_config() -> dict[str, str]:
+    config = get_company_config()
+    return {
+        "provider": str(config.get("dashboard_provider") or "").strip(),
+        "url": str(config.get("dashboard_url") or "").strip(),
+        "label": str(config.get("dashboard_label") or "").strip(),
+        "company_name": str(config.get("dashboard_company_name") or "").strip(),
+        "branch": str(config.get("dashboard_branch") or "").strip(),
+        "reference": str(config.get("dashboard_reference") or "").strip(),
+    }
 
 
 def get_supabase_config() -> tuple[str | None, str | None]:
@@ -130,13 +220,24 @@ def get_default_biz_id() -> str:
 
 
 def requested_biz_id() -> str:
-    return request.args.get("biz_id", "").strip() or get_default_biz_id()
+    return (
+        request.args.get("biz_id", "").strip()
+        or str(get_company_config().get("biz_id") or "").strip()
+        or get_default_biz_id()
+    )
 
 
 def build_business_page_context() -> dict[str, str]:
-    resolved_biz_id = requested_biz_id()
+    config = get_company_config()
+    dashboard = get_dashboard_config()
+    resolved_biz_id = str(config.get("biz_id") or "").strip()
+    resolved_slug = str(config.get("slug") or "").strip()
 
     def href(path: str) -> str:
+        if resolved_slug:
+            if path == "/":
+                return f"/b/{resolved_slug}/"
+            return f"/b/{resolved_slug}{path}"
         if resolved_biz_id:
             joiner = "&" if "?" in path else "?"
             return f"{path}{joiner}biz_id={resolved_biz_id}"
@@ -144,6 +245,18 @@ def build_business_page_context() -> dict[str, str]:
 
     return {
         "default_biz_id": resolved_biz_id,
+        "current_business_slug": resolved_slug,
+        "company_name": str(config.get("company_name") or DEFAULT_COMPANY["company_name"]),
+        "brand_wordmark": str(config.get("brand_wordmark") or config.get("company_name") or ""),
+        "assistant_name": str(config.get("assistant_name") or DEFAULT_COMPANY["assistant_name"]),
+        "hero_title": str(config.get("hero_title") or DEFAULT_COMPANY["hero_title"]),
+        "hero_subtitle": str(config.get("hero_subtitle") or DEFAULT_COMPANY["hero_subtitle"]),
+        "accent": str(config.get("accent") or DEFAULT_COMPANY["accent"]),
+        "currency": str(config.get("currency") or DEFAULT_COMPANY["currency"]),
+        "processing_fee": str(config.get("processing_fee") or DEFAULT_COMPANY["processing_fee"]),
+        "vat_rate": str(config.get("vat_rate") or DEFAULT_COMPANY["vat_rate"]),
+        "has_dashboard_config": "true" if dashboard.get("url") else "false",
+        "dashboard_provider": dashboard.get("provider", ""),
         "home_href": href("/"),
         "details_href": href("/details"),
         "assistant_href": href("/assistant"),
@@ -383,8 +496,18 @@ def index() -> str:
     return render_template("index.html", **build_business_page_context())
 
 
+@app.route("/b/<slug>/")
+def business_index(slug: str) -> str:
+    return render_template("index.html", **build_business_page_context())
+
+
 @app.route("/assistant")
 def assistant() -> str:
+    return render_template("assistant_flow.html", **build_business_page_context())
+
+
+@app.route("/b/<slug>/assistant")
+def business_assistant(slug: str) -> str:
     return render_template("assistant_flow.html", **build_business_page_context())
 
 
@@ -393,8 +516,18 @@ def assistant_classic() -> str:
     return redirect_to_assistant()
 
 
+@app.route("/b/<slug>/assistant-classic")
+def business_assistant_classic(slug: str) -> str:
+    return redirect_to_assistant()
+
+
 @app.route("/details")
 def details() -> str:
+    return redirect_to_assistant()
+
+
+@app.route("/b/<slug>/details")
+def business_details(slug: str) -> str:
     return redirect_to_assistant()
 
 
@@ -403,8 +536,18 @@ def fleet() -> str:
     return render_template("fleet.html", **build_business_page_context())
 
 
+@app.route("/b/<slug>/fleet")
+def business_fleet(slug: str) -> str:
+    return render_template("fleet.html", **build_business_page_context())
+
+
 @app.route("/quote")
 def quote() -> str:
+    return redirect_to_assistant()
+
+
+@app.route("/b/<slug>/quote")
+def business_quote(slug: str) -> str:
     return redirect_to_assistant()
 
 
@@ -413,8 +556,18 @@ def insurance() -> str:
     return redirect_to_assistant()
 
 
+@app.route("/b/<slug>/insurance")
+def business_insurance(slug: str) -> str:
+    return redirect_to_assistant()
+
+
 @app.route("/location")
 def location() -> str:
+    return redirect_to_assistant()
+
+
+@app.route("/b/<slug>/location")
+def business_location(slug: str) -> str:
     return redirect_to_assistant()
 
 
@@ -423,11 +576,29 @@ def summary() -> str:
     return redirect_to_assistant()
 
 
+@app.route("/b/<slug>/summary")
+def business_summary(slug: str) -> str:
+    return redirect_to_assistant()
+
+
 @app.route("/api/config")
 def api_config():
     config = get_company_config()
-    config["biz_id"] = requested_biz_id()
-    return jsonify(config)
+    public_config = {
+        "company_name": config.get("company_name"),
+        "brand_wordmark": config.get("brand_wordmark"),
+        "assistant_name": config.get("assistant_name"),
+        "hero_title": config.get("hero_title"),
+        "hero_subtitle": config.get("hero_subtitle"),
+        "accent": config.get("accent"),
+        "currency": config.get("currency"),
+        "hero_image": config.get("hero_image"),
+        "processing_fee": config.get("processing_fee"),
+        "vat_rate": config.get("vat_rate"),
+        "slug": config.get("slug"),
+        "biz_id": requested_biz_id(),
+    }
+    return jsonify(public_config)
 
 
 @app.route("/api/fleet")
