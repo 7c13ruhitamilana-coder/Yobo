@@ -9,6 +9,7 @@
 <body
   class="assistant-flow-page"
   data-default-biz-id="{{ default_biz_id }}"
+  data-business-slug="{{ current_business_slug }}"
   data-company-name="{{ company_name }}"
   data-assistant-name="{{ assistant_name }}"
   data-brand-wordmark="{{ brand_wordmark }}"
@@ -46,7 +47,7 @@
       </form>
     </section>
   </main>
-
+  <script id="assistantFlowConfig" type="application/json">{{ assistant_flow_config|tojson }}</script>
   <script src="{{ url_for('static', filename='assistant_flow.js') }}"></script>
 </body>
 </html>

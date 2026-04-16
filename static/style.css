@@ -2129,6 +2129,9 @@ body {
 .assistant-flow-fleet-card {
   background: #fffdf9;
   min-height: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .assistant-flow-fleet-card.is-suggested {
@@ -2148,11 +2151,33 @@ body {
 }
 
 .assistant-flow-fleet-meta {
-  flex: 1;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .assistant-flow-select {
-  margin-top: 8px;
+  margin-top: auto;
+  align-self: stretch;
+  width: 100%;
+}
+
+.assistant-flow-fleet-meta strong {
+  min-height: 2.5em;
+  display: block;
+}
+
+.assistant-flow-card-actions {
+  margin-top: 16px;
+}
+
+.assistant-flow-card-actions.center {
+  justify-content: center;
+}
+
+.assistant-flow-quote-card .assistant-flow-card-actions {
+  margin-top: 18px;
 }
 
 .assistant-flow-summary-divider {

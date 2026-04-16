@@ -88,6 +88,7 @@ DEFAULT_COMPANY = {
     "dashboard_company_name": "",
     "dashboard_branch": "",
     "dashboard_reference": "",
+    "flow": {},
 }
 
 
@@ -227,7 +228,7 @@ def requested_biz_id() -> str:
     )
 
 
-def build_business_page_context() -> dict[str, str]:
+def build_business_page_context() -> dict[str, Any]:
     config = get_company_config()
     dashboard = get_dashboard_config()
     resolved_biz_id = str(config.get("biz_id") or "").strip()
@@ -257,6 +258,7 @@ def build_business_page_context() -> dict[str, str]:
         "vat_rate": str(config.get("vat_rate") or DEFAULT_COMPANY["vat_rate"]),
         "has_dashboard_config": "true" if dashboard.get("url") else "false",
         "dashboard_provider": dashboard.get("provider", ""),
+        "assistant_flow_config": config.get("flow") if isinstance(config.get("flow"), dict) else {},
         "home_href": href("/"),
         "details_href": href("/details"),
         "assistant_href": href("/assistant"),
@@ -288,6 +290,9 @@ def get_gemini_config() -> tuple[str | None, str]:
 
 
 def fetch_fleet_from_supabase(biz_id: str) -> tuple[list[dict[str, Any]], bool, str | None]:
+    if not biz_id:
+        return [], False, "Missing biz_id."
+
     supabase_url, supabase_key = get_supabase_config()
     if not supabase_url or not supabase_key or not requests:
         return DEMO_FLEET, True, "Supabase not configured."
@@ -436,6 +441,8 @@ def parse_chat_dates(
 def get_available_fleet_for_dates(
     biz_id: str, start_date: date | None, end_date: date | None
 ) -> list[dict[str, Any]]:
+    if not biz_id:
+        return []
     fleet, _, _ = fetch_fleet_from_supabase(biz_id)
     if start_date and end_date:
         booked_ids = fetch_booked_car_ids(biz_id, start_date, end_date)
@@ -604,6 +611,9 @@ def api_config():
 @app.route("/api/fleet")
 def api_fleet():
     biz_id = requested_biz_id()
+    if not biz_id:
+        return jsonify({"ok": False, "data": [], "demo": False, "error": "Missing biz_id."}), 400
+
     start_raw = request.args.get("start_date", "").strip()
     end_raw = request.args.get("end_date", "").strip()
     city_raw = request.args.get("city", "").strip().lower()
@@ -952,6 +962,15 @@ def api_bookings():
         return jsonify({"ok": False, "error": "Start date cannot be in the past."}), 400
     if end_date < start_date:
         return jsonify({"ok": False, "error": "End date cannot be before start date."}), 400
+
+    booked_ids = fetch_booked_car_ids(str(body.get("biz_id")), start_date, end_date)
+    if str(body.get("car_id")) in booked_ids:
+        return jsonify(
+            {
+                "ok": False,
+                "error": "That vehicle is no longer available for the selected dates.",
+            }
+        ), 409
 
     ok, message = save_booking_to_supabase(body)
     if ok:

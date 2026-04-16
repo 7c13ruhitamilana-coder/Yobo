@@ -13,6 +13,31 @@ hero_image = "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&
 processing_fee = 50
 vat_rate = 0.09
 
+[businesses.veep.flow]
+intro_messages = [
+  "Hello I'm {assistant_name}! Your AI-powered booking assistant.",
+  "Please enter your full name."
+]
+name_reprompt = "Please enter your full name."
+name_complete = "Nice to meet you {first_name}. What is your mobile number?"
+phone_reprompt = "Please enter your mobile number next."
+phone_complete = "What is your email address?"
+email_reprompt = "Please enter your email address next."
+email_complete = "What is your 6-digit Singapore zipcode?"
+zipcode_reprompt = "Please enter your 6-digit Singapore zipcode."
+zipcode_complete = "What is your current vehicle type?"
+vehicle_type_reprompt = "Please tell me your current vehicle type."
+vehicle_type_complete = "How long would you like the enquiry to run for? Please choose your from and to dates."
+interest_type_prompt = "What should I note as your interest form type?"
+contract_company_reprompt = "Please tell me your current contract company."
+contract_company_complete = "Please select your current contract expiry date."
+contract_expiry_complete = "Are you a Singapore citizen?"
+citizen_prompt = "Please choose one of these options: Yes, Yes Permanent Resident, or No."
+fleet_intro = "Great! Now it's time for you to choose your dream car! If you'd like, I could suggest a car tailored to your needs."
+quote_intro = "Here's your estimated quote."
+review_intro = "Before you submit, please review your enquiry details."
+completion_message = "Thank you. One of our consultants will contact you soon to continue your {company_name} enquiry."
+
 [businesses.secondbrand]
 biz_id = "383eaf74-bf46-4851-9d69-d8af4423588c"
 company_name = "Second Brand"
@@ -20,8 +45,8 @@ brand_wordmark = "SECOND"
 assistant_name = "Yobo"
 hero_title = "Find Your Next Drive With Second Brand."
 hero_subtitle = "Browse the fleet and submit your enquiry in minutes."
-accent = "#f59a3c"
-currency = "SGD"
+accent = "#ffdfdf"
+currency = "AED"
 hero_image = "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop"
 processing_fee = 50
 vat_rate = 0.09
@@ -31,3 +56,18 @@ dashboard_label = "Second Brand Moiboo Dashboard"
 dashboard_company_name = "Second Brand Pte Ltd"
 dashboard_branch = "Main Branch"
 dashboard_reference = "secondbrand-main"
+
+[businesses.secondbrand.flow]
+intro_messages = [
+  "Hello! I'm {assistant_name}, your {company_name} enquiry guide.",
+]
+name_reprompt = "Let's get some basic details before we start. Please tell me your full name "
+name_complete = "Thanks {first_name}. What is your mobile number?"
+phone_complete = "What is your email address?"
+email_reprompt = "Please enter the email address for this enquiry."
+email_complete = "What is your pick up address? or would you like to pick up the car yourself?"
+vehicle_type_complete = "Let's lock in the dates first. Please choose your from and to dates."
+fleet_intro = "Perfect. I'll now show the fleet available for those dates, and I can recommend one if you want."
+quote_intro = "Here's the current estimate for this enquiry."
+review_intro = "Let's review the enquiry details before you submit."
+completion_message = "Thank you. The {company_name} team will review this enquiry and get back to you shortly."

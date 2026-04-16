@@ -6,7 +6,7 @@
   <title>{{ company_name }} Fleet</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-<body>
+<body data-default-biz-id="{{ default_biz_id }}" data-business-slug="{{ current_business_slug }}">
   <main class="container">
     <nav class="nav">
       <div class="logo veep-logo" aria-label="{{ company_name }}">
@@ -41,13 +41,18 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const defaultBizId = {{ default_biz_id|tojson }};
-    const bizId = params.get('biz_id') || localStorage.getItem('biz_id') || defaultBizId || '';
-    const startFromQuery = params.get('start_date') || '';
-    const endFromQuery = params.get('end_date') || '';
-    if (bizId) localStorage.setItem('biz_id', bizId);
-    if (startFromQuery) localStorage.setItem('start_date', startFromQuery);
-    if (endFromQuery) localStorage.setItem('end_date', endFromQuery);
+    const defaultBizId = document.body.dataset.defaultBizId || {{ default_biz_id|tojson }};
+    const businessSlug = document.body.dataset.businessSlug || '';
+    const bizStorageKey = businessSlug ? `biz_id:${businessSlug}` : 'biz_id';
+    const startStorageKey = businessSlug ? `start_date:${businessSlug}` : 'start_date';
+    const endStorageKey = businessSlug ? `end_date:${businessSlug}` : 'end_date';
+    const cityStorageKey = businessSlug ? `city:${businessSlug}` : 'city';
+    const bizId = params.get('biz_id') || defaultBizId || localStorage.getItem(bizStorageKey) || '';
+    const startFromQuery = params.get('start_date') || localStorage.getItem(startStorageKey) || '';
+    const endFromQuery = params.get('end_date') || localStorage.getItem(endStorageKey) || '';
+    if (bizId) localStorage.setItem(bizStorageKey, bizId);
+    if (startFromQuery) localStorage.setItem(startStorageKey, startFromQuery);
+    if (endFromQuery) localStorage.setItem(endStorageKey, endFromQuery);
     const firstFromQuery = params.get('first_name') || '';
     const lastFromQuery = params.get('last_name') || '';
     const phoneFromQuery = params.get('phone') || '';
@@ -55,7 +60,7 @@
     if (firstFromQuery) localStorage.setItem('first_name', firstFromQuery);
     if (lastFromQuery) localStorage.setItem('last_name', lastFromQuery);
     if (phoneFromQuery) localStorage.setItem('phone', phoneFromQuery);
-    if (cityFromQuery) localStorage.setItem('city', cityFromQuery);
+    if (cityFromQuery) localStorage.setItem(cityStorageKey, cityFromQuery);
 
     function cardHTML(car) {
       const img = (car.photo_url || '').trim() || 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop';
@@ -76,8 +81,8 @@
     }
 
     async function loadFleet() {
-      const startDate = localStorage.getItem('start_date') || '';
-      const endDate = localStorage.getItem('end_date') || '';
+      const startDate = localStorage.getItem(startStorageKey) || '';
+      const endDate = localStorage.getItem(endStorageKey) || '';
       const query = new URLSearchParams();
       if (bizId) query.set('biz_id', bizId);
       if (startDate && endDate) {
@@ -88,6 +93,10 @@
       const data = await res.json();
       const fleet = data.data || [];
       const grid = document.getElementById('fleetGrid');
+      if (!data.ok) {
+        grid.innerHTML = `<div>${data.error || 'Unable to load the fleet right now.'}</div>`;
+        return;
+      }
       if (!fleet.length) {
         grid.innerHTML = '<div>No available cars found.</div>';
         return;
