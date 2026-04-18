@@ -162,6 +162,17 @@ def login_required(view):
     @wraps(view)
     def wrapped(*args, **kwargs):
         if not session.get("employee"):
+            wants_json = request.path.startswith("/api/") or (
+                "application/json" in request.headers.get("Accept", "").lower()
+            )
+            if wants_json:
+                return jsonify(
+                    {
+                        "ok": False,
+                        "error": "Your dashboard session has expired. Please sign in again.",
+                        "redirect_to": url_for("login"),
+                    }
+                ), 401
             return redirect(url_for("login"))
         return view(*args, **kwargs)
 

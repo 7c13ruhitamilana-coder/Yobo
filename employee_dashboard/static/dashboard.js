@@ -187,7 +187,19 @@
       const response = await fetch(`${config.bookingsUrl}?${buildQuery()}`, {
         headers: { Accept: 'application/json' },
       });
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.toLowerCase().includes('application/json')) {
+        if (response.redirected && response.url) {
+          window.location.href = response.url;
+          return;
+        }
+        throw new Error('The dashboard returned an unexpected page instead of JSON. Please sign in again.');
+      }
       const data = await response.json();
+      if (response.status === 401 && data.redirect_to) {
+        window.location.href = data.redirect_to;
+        return;
+      }
       if (!response.ok || !data.ok) {
         throw new Error(data.error || 'Unable to load dashboard bookings.');
       }
@@ -236,7 +248,19 @@
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(payload),
     });
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().includes('application/json')) {
+      if (response.redirected && response.url) {
+        window.location.href = response.url;
+        return {};
+      }
+      throw new Error('The dashboard returned an unexpected page instead of JSON. Please sign in again.');
+    }
     const data = await response.json();
+    if (response.status === 401 && data.redirect_to) {
+      window.location.href = data.redirect_to;
+      return {};
+    }
     if (!response.ok || !data.ok) {
       throw new Error(data.error || 'Unable to save booking state.');
     }
