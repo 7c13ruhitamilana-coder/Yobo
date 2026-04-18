@@ -94,14 +94,17 @@ def supabase_request(
     if prefer:
         headers["Prefer"] = prefer
 
-    response = requests.request(
-        method=method.upper(),
-        url=endpoint,
-        headers=headers,
-        params=params,
-        json=payload,
-        timeout=15,
-    )
+    try:
+        response = requests.request(
+            method=method.upper(),
+            url=endpoint,
+            headers=headers,
+            params=params,
+            json=payload,
+            timeout=15,
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Could not reach Supabase for '{table}': {exc}") from exc
     if response.status_code not in (200, 201, 204):
         detail = response.text.strip() or "Unknown error"
         raise RuntimeError(
@@ -430,7 +433,7 @@ def login():
 
         try:
             employee = fetch_employee_record(username)
-        except RuntimeError as exc:
+        except Exception as exc:
             flash(str(exc), "error")
             return render_template("login.html", username=username)
 
