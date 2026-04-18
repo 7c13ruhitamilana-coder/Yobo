@@ -6,7 +6,7 @@
   <title>{{ company_name }}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-<body>
+<body style="--accent: {{ theme_accent }}; --accent-deep: {{ theme_accent_deep }}; --accent-rgb: {{ theme_accent_rgb }}; --border: {{ theme_border }}; --bg: {{ theme_bg }}; --surface-soft: {{ theme_soft }};">
   <main class="container">
     <nav class="nav">
       <div class="logo veep-logo" aria-label="{{ company_name }}">

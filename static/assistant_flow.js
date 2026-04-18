@@ -27,6 +27,7 @@
   const fleetPromptExamples = ['family SUV', 'budget daily drive', 'something executive', 'electric car'];
   const interestTypeOptions = ['Daily', 'Weekly', 'Monthly', 'Yearly'];
   const citizenOptions = ['Yes', 'Yes Permanent Resident', 'No'];
+  const defaultStageSequence = ['name', 'phone', 'email', 'zipcode', 'vehicle_type', 'dates', 'interest_type', 'contract_company', 'contract_expiry', 'citizen_status', 'fleet', 'quote', 'review', 'summary'];
   const panelSequence = ['dates', 'interest_type', 'contract_expiry', 'citizen', 'fleet', 'quote', 'review', 'summary'];
 
   const defaultFlowText = {
@@ -65,6 +66,56 @@
     }
   }
   const flowText = { ...defaultFlowText, ...(rawFlowConfig || {}) };
+  const stageAliases = {
+    citizen: 'citizen_status',
+    citizen_status: 'citizen_status',
+    vehicle: 'vehicle_type',
+    vehicle_type: 'vehicle_type',
+    interest: 'interest_type',
+    interest_type: 'interest_type',
+  };
+  const configuredStageSequence = Array.isArray(rawFlowConfig.stage_sequence)
+    ? rawFlowConfig.stage_sequence
+      .map((value) => stageAliases[String(value || '').trim().toLowerCase()] || String(value || '').trim().toLowerCase())
+      .filter(Boolean)
+    : [];
+  const activeStageSequence = configuredStageSequence.length
+    ? configuredStageSequence.filter((stage, index, array) => defaultStageSequence.includes(stage) && array.indexOf(stage) === index)
+    : defaultStageSequence;
+  const locationValidationMode = String(flowText.zipcode_validation || 'zipcode').trim().toLowerCase();
+
+  function fieldLabel(key, fallback) {
+    return templateText(flowText[`${key}_label`] || fallback);
+  }
+
+  function usesZipcodeValidation() {
+    return locationValidationMode !== 'text';
+  }
+
+  function normalizeLocationValue(value) {
+    return usesZipcodeValidation() ? normalizeZipcode(value) : String(value || '').trim();
+  }
+
+  function isValidLocationValue(value) {
+    return usesZipcodeValidation() ? isValidZipcode(value) : String(value || '').trim().length >= 2;
+  }
+
+  function invalidLocationMessage() {
+    return flowText.zipcode_invalid
+      || (usesZipcodeValidation()
+        ? 'Please enter a valid 6-digit Singapore zipcode.'
+        : `Please enter your ${fieldLabel('zipcode', 'location').toLowerCase()}.`);
+  }
+
+  function stageEnabled(stage) {
+    return activeStageSequence.includes(stage);
+  }
+
+  function nextStageAfter(stage) {
+    const index = activeStageSequence.indexOf(stage);
+    if (index === -1) return '';
+    return activeStageSequence[index + 1] || '';
+  }
 
   function templateText(value, vars = {}) {
     return String(value || '').replace(/\{(\w+)\}/g, (_, key) => {
@@ -324,6 +375,94 @@
     });
   }
 
+  async function openStage(stage, { prompt = true } = {}) {
+    if (!stage) {
+      setStage('complete');
+      return;
+    }
+
+    if (stage === 'name') {
+      setStage('name');
+      if (prompt) await assistantSay(flowMessage('name_reprompt'));
+      return;
+    }
+    if (stage === 'phone') {
+      setStage('phone');
+      if (prompt) await assistantSay(flowMessage('phone_reprompt'));
+      return;
+    }
+    if (stage === 'email') {
+      setStage('email');
+      if (prompt) await assistantSay(flowMessage('email_reprompt'));
+      return;
+    }
+    if (stage === 'zipcode') {
+      setStage('zipcode');
+      if (prompt) await assistantSay(flowMessage('zipcode_reprompt'));
+      return;
+    }
+    if (stage === 'vehicle_type') {
+      setStage('vehicle_type');
+      if (prompt) await assistantSay(flowMessage('vehicle_type_reprompt'));
+      return;
+    }
+    if (stage === 'contract_company') {
+      setStage('contract_company');
+      if (prompt) await assistantSay(flowMessage('contract_company_reprompt'));
+      return;
+    }
+    if (stage === 'dates') {
+      renderDatesPanel();
+      setStage('dates');
+      if (prompt) await assistantSay('Please choose your from and to dates.');
+      return;
+    }
+    if (stage === 'interest_type') {
+      if (prompt) await assistantSay(flowMessage('interest_type_prompt'));
+      renderInterestTypePanel();
+      setStage('interest_type');
+      return;
+    }
+    if (stage === 'contract_expiry') {
+      if (prompt) await assistantSay(flowMessage('contract_company_complete'));
+      renderContractExpiryPanel();
+      setStage('contract_expiry');
+      return;
+    }
+    if (stage === 'citizen_status') {
+      if (prompt) await assistantSay(flowMessage('citizen_prompt'));
+      renderCitizenPanel();
+      setStage('citizen_status');
+      return;
+    }
+    if (stage === 'fleet') {
+      if (prompt) await assistantBatch([flowMessage('fleet_intro')]);
+      await renderFleetPanel();
+      setStage('fleet');
+      return;
+    }
+    if (stage === 'quote') {
+      if (prompt) await assistantSay(flowMessage('quote_intro'));
+      renderQuotePanel();
+      setStage('quote');
+      return;
+    }
+    if (stage === 'review') {
+      if (prompt) await assistantSay(flowMessage('review_intro'));
+      renderReviewPanel();
+      setStage('review');
+      return;
+    }
+    if (stage === 'summary') {
+      if (prompt) await assistantSay("Here's your enquiry summary.");
+      renderSummaryPanel();
+      setStage('summary');
+      return;
+    }
+
+    setStage(stage);
+  }
+
   function setStage(stage) {
     state.stage = stage;
     const placeholders = {
@@ -332,8 +471,8 @@
       name: 'Type your full name...',
       phone: 'Type your mobile number...',
       email: 'Type your email address...',
-      zipcode: 'Type your 6-digit zipcode...',
-      vehicle_type: 'Type your current vehicle type...',
+      zipcode: flowText.zipcode_placeholder || `Type your ${fieldLabel('zipcode', 'zipcode').toLowerCase()}...`,
+      vehicle_type: flowText.vehicle_type_placeholder || 'Type your current vehicle type...',
       contract_company: 'Type your current contract company...',
       fleet: 'Ask for a recommendation or choose a car below...',
       complete: 'You can ask another question or start again...',
@@ -446,6 +585,108 @@
     const normalized = String(value || '').trim().toLowerCase();
     const match = interestTypeOptions.find((option) => option.toLowerCase() === normalized);
     return match || '';
+  }
+
+  const reviewFieldDefinitions = {
+    name: {
+      name: 'full_name',
+      label: 'Contact Person Name',
+      inputType: 'text',
+      getValue: () => state.full_name,
+    },
+    phone: {
+      name: 'phone',
+      label: 'Contact Person Mobile',
+      inputType: 'text',
+      getValue: () => state.phone,
+    },
+    email: {
+      name: 'email',
+      label: 'Email',
+      inputType: 'email',
+      getValue: () => state.email,
+    },
+    zipcode: {
+      name: 'zipcode',
+      label: fieldLabel('zipcode', 'Zipcode'),
+      inputType: 'text',
+      getValue: () => state.zipcode,
+    },
+    vehicle_type: {
+      name: 'current_vehicle_type',
+      label: fieldLabel('vehicle_type', 'Current Vehicle Type'),
+      inputType: 'text',
+      getValue: () => state.current_vehicle_type,
+    },
+    interest_type: {
+      name: 'interest_form_type',
+      label: fieldLabel('interest_type', 'Interest Form Type'),
+      inputType: 'text',
+      getValue: () => state.interest_form_type,
+    },
+    contract_company: {
+      name: 'contract_company',
+      label: fieldLabel('contract_company', 'Current Contract Company'),
+      inputType: 'text',
+      getValue: () => state.contract_company,
+    },
+    contract_expiry: {
+      name: 'contract_expiry',
+      label: fieldLabel('contract_expiry', 'Current Contract Expiry'),
+      inputType: 'date',
+      getValue: () => state.contract_expiry,
+    },
+    citizen_status: {
+      name: 'citizen_status',
+      label: fieldLabel('citizen_status', 'Singapore Citizens'),
+      inputType: 'text',
+      getValue: () => state.citizen_status,
+    },
+  };
+
+  function enabledReviewFields() {
+    return activeStageSequence
+      .filter((stage) => reviewFieldDefinitions[stage])
+      .map((stage) => reviewFieldDefinitions[stage]);
+  }
+
+  function quoteDetailRows(values) {
+    const rows = [
+      ['Vehicle', `${state.car_make} ${state.car_model}`.trim()],
+      ['Schedule', `${formatCardDate(state.start_date)} to ${formatCardDate(state.end_date)}`],
+    ];
+    if (stageEnabled('interest_type') && state.interest_form_type) {
+      rows.splice(1, 0, [fieldLabel('interest_type', 'Interest Form Type'), state.interest_form_type]);
+    }
+    if (stageEnabled('vehicle_type') && state.current_vehicle_type) {
+      rows.push([fieldLabel('vehicle_type', 'Current Vehicle Type'), state.current_vehicle_type]);
+    }
+    rows.push(['Daily rate', formatCurrency(Number(state.price_per_day || 0))]);
+    rows.push(['Estimated total', formatCurrency(values.total)]);
+    return rows;
+  }
+
+  function summaryRows(values) {
+    const rows = [
+      ['Contact Person Name', state.full_name],
+      ['Contact Person Mobile', state.phone],
+      ['Email', state.email],
+    ];
+    enabledReviewFields().forEach((field) => {
+      if (['full_name', 'phone', 'email'].includes(field.name)) return;
+      if (field.name === 'contract_expiry') {
+        rows.push([field.label, formatCardDate(state.contract_expiry)]);
+        return;
+      }
+      rows.push([field.label, state[field.name] || '']);
+    });
+    rows.push(['Selected Vehicle', `${state.car_make} ${state.car_model}`.trim()]);
+    rows.push(['Schedule', `${formatCardDate(state.start_date)} to ${formatCardDate(state.end_date)}`]);
+    rows.push(['Base estimate', formatCurrency(values.baseRental)]);
+    rows.push(['Processing fee', formatCurrency(values.processingFee)]);
+    rows.push([`GST (${Math.round(gstRate * 100)}%)`, formatCurrency(values.gst)]);
+    rows.push(['Estimated total', formatCurrency(values.total)]);
+    return rows;
   }
 
   function estimateValues() {
@@ -576,9 +817,7 @@
         selectCarFromButton(button);
         completePanel('fleet');
         userSay(`I want the ${state.car_make} ${state.car_model}.`);
-        await assistantSay(flowMessage('quote_intro'));
-        renderQuotePanel();
-        setStage('quote');
+        await openStage(nextStageAfter('fleet') || 'quote');
       });
     });
   }
@@ -672,9 +911,7 @@
       completePanel('dates');
       saveDraft();
       userSay(`${formatCardDate(state.start_date)} to ${formatCardDate(state.end_date)}`);
-      await assistantSay(flowMessage('interest_type_prompt'));
-      renderInterestTypePanel();
-      setStage('interest_type');
+      await openStage(nextStageAfter('dates'), { prompt: true });
     });
   }
 
@@ -706,8 +943,7 @@
     completePanel('interest_type');
     saveDraft();
     userSay(choice);
-    await assistantSay(flowMessage('contract_company_reprompt'));
-    setStage('contract_company');
+    await openStage(nextStageAfter('interest_type'), { prompt: true });
   }
 
   function renderContractExpiryPanel() {
@@ -743,9 +979,7 @@
       completePanel('contract_expiry');
       saveDraft();
       userSay(formatCardDate(value));
-      await assistantSay(flowMessage('contract_expiry_complete'));
-      renderCitizenPanel();
-      setStage('citizen_status');
+      await openStage(nextStageAfter('contract_expiry'), { prompt: true });
     });
   }
 
@@ -777,16 +1011,13 @@
     completePanel('citizen');
     saveDraft();
     userSay(status);
-    await assistantBatch([
-      flowMessage('fleet_intro')
-    ]);
-    await renderFleetPanel();
-    setStage('fleet');
+    await openStage(nextStageAfter('citizen_status'), { prompt: true });
   }
 
   function renderQuotePanel() {
     const body = upsertPanel('quote');
     const values = estimateValues();
+    const detailRows = quoteDetailRows(values);
     body.innerHTML = `
       <div class="assistant-chat-panel-head">
         <strong>Estimated quote</strong>
@@ -794,12 +1025,9 @@
       </div>
       <div class="assistant-flow-quote-card">
         <div class="assistant-flow-detail-grid">
-          <div><span>Vehicle</span><strong>${escapeHtml(`${state.car_make} ${state.car_model}`)}</strong></div>
-          <div><span>Interest type</span><strong>${escapeHtml(state.interest_form_type)}</strong></div>
-          <div><span>Schedule</span><strong>${escapeHtml(`${formatCardDate(state.start_date)} to ${formatCardDate(state.end_date)}`)}</strong></div>
-          <div><span>Current vehicle type</span><strong>${escapeHtml(state.current_vehicle_type)}</strong></div>
-          <div><span>Daily rate</span><strong>${formatCurrency(Number(state.price_per_day || 0))}</strong></div>
-          <div><span>Estimated total</span><strong>${formatCurrency(values.total)}</strong></div>
+          ${detailRows.map(([label, value]) => `
+            <div><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>
+          `).join('')}
         </div>
         <div class="assistant-flow-card-actions center">
           <button class="btn-black" id="assistantContinueQuote" type="button">Continue</button>
@@ -808,14 +1036,18 @@
     `;
     body.querySelector('#assistantContinueQuote').addEventListener('click', async () => {
       completePanel('quote');
-      await assistantSay(flowMessage('review_intro'));
-      renderReviewPanel();
-      setStage('review');
+      await openStage(nextStageAfter('quote') || 'review', { prompt: true });
     });
   }
 
   function renderReviewPanel() {
     const body = upsertPanel('review');
+    const reviewFieldsMarkup = enabledReviewFields().map((field) => `
+      <label class="assistant-flow-field">
+        <span>${escapeHtml(field.label)} *</span>
+        <input name="${escapeHtml(field.name)}" type="${escapeHtml(field.inputType)}" value="${escapeHtml(field.getValue())}" required />
+      </label>
+    `).join('');
     body.innerHTML = `
       <form class="assistant-flow-form" id="assistantReviewForm">
         <div class="assistant-chat-panel-head">
@@ -823,15 +1055,7 @@
           <p class="assistant-chat-panel-note">You can edit any detail below before submitting your interest.</p>
         </div>
         <div class="assistant-flow-fields two-col">
-          <label class="assistant-flow-field"><span>Contact Person Name *</span><input name="full_name" type="text" value="${escapeHtml(state.full_name)}" required /></label>
-          <label class="assistant-flow-field"><span>Contact Person Mobile *</span><input name="phone" type="text" value="${escapeHtml(state.phone)}" required /></label>
-          <label class="assistant-flow-field"><span>Email *</span><input name="email" type="email" value="${escapeHtml(state.email)}" required /></label>
-          <label class="assistant-flow-field"><span>Zipcode *</span><input name="zipcode" type="text" value="${escapeHtml(state.zipcode)}" required /></label>
-          <label class="assistant-flow-field"><span>Current Vehicle Type *</span><input name="current_vehicle_type" type="text" value="${escapeHtml(state.current_vehicle_type)}" required /></label>
-          <label class="assistant-flow-field"><span>Interest Form Type *</span><input name="interest_form_type" type="text" value="${escapeHtml(state.interest_form_type)}" required /></label>
-          <label class="assistant-flow-field"><span>Current Contract Company *</span><input name="contract_company" type="text" value="${escapeHtml(state.contract_company)}" required /></label>
-          <label class="assistant-flow-field"><span>Current Contract Expiry *</span><input name="contract_expiry" type="date" value="${escapeHtml(state.contract_expiry)}" required /></label>
-          <label class="assistant-flow-field"><span>Singapore Citizens *</span><input name="citizen_status" type="text" value="${escapeHtml(state.citizen_status)}" required /></label>
+          ${reviewFieldsMarkup}
           <label class="assistant-flow-field"><span>From Date *</span><input name="start_date" type="date" value="${escapeHtml(state.start_date)}" required /></label>
           <label class="assistant-flow-field"><span>To Date *</span><input name="end_date" type="date" value="${escapeHtml(state.end_date)}" required /></label>
         </div>
@@ -848,7 +1072,7 @@
       const name = splitFullName(formData.get('full_name'));
       const phone = normalizePhone(formData.get('phone'));
       const email = normalizeEmail(formData.get('email'));
-      const zipcode = normalizeZipcode(formData.get('zipcode'));
+      const zipcode = normalizeLocationValue(formData.get('zipcode'));
       const vehicleType = String(formData.get('current_vehicle_type') || '').trim();
       const interestType = normalizeInterestType(formData.get('interest_form_type'));
       const contractCompany = String(formData.get('contract_company') || '').trim();
@@ -861,12 +1085,12 @@
       if (!name.full_name) return void await assistantSay('Please enter your full name.');
       if (!isValidPhone(phone)) return void await assistantSay('Please enter a valid mobile number.');
       if (!isValidEmail(email)) return void await assistantSay('Please enter a valid email address.');
-      if (!isValidZipcode(zipcode)) return void await assistantSay('Please enter a valid 6-digit Singapore zipcode.');
-      if (!vehicleType) return void await assistantSay('Please enter your current vehicle type.');
-      if (!interestType) return void await assistantSay(`Please use one of these interest form types: ${interestTypeOptions.join(', ')}.`);
-      if (!contractCompany) return void await assistantSay('Please enter your current contract company.');
-      if (!contractExpiry || contractExpiry < minimumDate) return void await assistantSay('Please choose a valid current contract expiry date.');
-      if (!citizenStatus) return void await assistantSay(`Please choose one of these options: ${citizenOptions.join(', ')}.`);
+      if (stageEnabled('zipcode') && !isValidLocationValue(zipcode)) return void await assistantSay(invalidLocationMessage());
+      if (stageEnabled('vehicle_type') && !vehicleType) return void await assistantSay(flowMessage('vehicle_type_reprompt'));
+      if (stageEnabled('interest_type') && !interestType) return void await assistantSay(`Please use one of these options: ${interestTypeOptions.join(', ')}.`);
+      if (stageEnabled('contract_company') && !contractCompany) return void await assistantSay(flowMessage('contract_company_reprompt'));
+      if (stageEnabled('contract_expiry') && (!contractExpiry || contractExpiry < minimumDate)) return void await assistantSay('Please choose a valid current contract expiry date.');
+      if (stageEnabled('citizen_status') && !citizenStatus) return void await assistantSay(flowMessage('citizen_prompt'));
       if (!startDate || !endDate) return void await assistantSay('Please choose your from and to dates.');
       if (startDate < minimumDate) return void await assistantSay('Your from date cannot be in the past.');
       if (endDate < startDate) return void await assistantSay('Your to date cannot be before your from date.');
@@ -913,33 +1137,23 @@
       completePanel('review');
       saveDraft();
       userSay('These details look good.');
-      await assistantSay("Here's your enquiry summary.");
-      renderSummaryPanel();
-      setStage('summary');
+      await openStage(nextStageAfter('review') || 'summary', { prompt: true });
     });
   }
 
   function renderSummaryPanel() {
     const body = upsertPanel('summary');
     const values = estimateValues();
+    const detailRows = summaryRows(values);
     body.innerHTML = `
       <div class="assistant-flow-summary">
-        <div class="assistant-flow-summary-row"><span>Contact Person Name</span><span>${escapeHtml(state.full_name)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Contact Person Mobile</span><span>${escapeHtml(state.phone)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Email</span><span>${escapeHtml(state.email)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Zipcode</span><span>${escapeHtml(state.zipcode)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Current Vehicle Type</span><span>${escapeHtml(state.current_vehicle_type)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Current Contract Company</span><span>${escapeHtml(state.contract_company)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Current Contract Expiry</span><span>${escapeHtml(formatCardDate(state.contract_expiry))}</span></div>
-        <div class="assistant-flow-summary-row"><span>Singapore Citizens</span><span>${escapeHtml(state.citizen_status)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Interest Form Type</span><span>${escapeHtml(state.interest_form_type)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Selected Vehicle</span><span>${escapeHtml(`${state.car_make} ${state.car_model}`)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Schedule</span><span>${escapeHtml(`${formatCardDate(state.start_date)} to ${formatCardDate(state.end_date)}`)}</span></div>
-        <div class="assistant-flow-summary-divider"></div>
-        <div class="assistant-flow-summary-row"><span>Base estimate</span><span>${formatCurrency(values.baseRental)}</span></div>
-        <div class="assistant-flow-summary-row"><span>Processing fee</span><span>${formatCurrency(values.processingFee)}</span></div>
-        <div class="assistant-flow-summary-row"><span>GST (9%)</span><span>${formatCurrency(values.gst)}</span></div>
-        <div class="assistant-flow-summary-row total"><strong>Estimated total</strong><span>${formatCurrency(values.total)}</span></div>
+        ${detailRows.map(([label, value], index) => `
+          ${index === detailRows.length - 4 ? '<div class="assistant-flow-summary-divider"></div>' : ''}
+          <div class="assistant-flow-summary-row ${label === 'Estimated total' ? 'total' : ''}">
+            ${label === 'Estimated total' ? '<strong>Estimated total</strong>' : `<span>${escapeHtml(label)}</span>`}
+            <span>${escapeHtml(value)}</span>
+          </div>
+        `).join('')}
         <p class="assistant-chat-summary-note">Your enquiry estimate is shown in ${escapeHtml(currencyCode)} and will be shared with our team together with the details above.</p>
         <div class="assistant-flow-card-actions center">
           <button class="btn-black" id="assistantSubmitInterest" type="button">Submit Interest</button>
@@ -1024,7 +1238,7 @@
     await assistantBatch([
       flowMessage('name_complete', { first_name: state.first_name })
     ]);
-    setStage('phone');
+    await openStage(nextStageAfter('name'), { prompt: false });
   }
 
   async function handlePhoneInput(text) {
@@ -1036,7 +1250,7 @@
     state.phone = normalizePhone(text);
     saveDraft();
     await assistantSay(flowMessage('phone_complete'));
-    setStage('email');
+    await openStage(nextStageAfter('phone'), { prompt: false });
   }
 
   async function handleEmailInput(text) {
@@ -1048,19 +1262,19 @@
     state.email = normalizeEmail(text);
     saveDraft();
     await assistantSay(flowMessage('email_complete'));
-    setStage('zipcode');
+    await openStage(nextStageAfter('email'), { prompt: false });
   }
 
   async function handleZipcodeInput(text) {
     if (await maybeAnswerQuestion(text, flowMessage('zipcode_reprompt'))) return;
-    if (!isValidZipcode(text)) {
-      await assistantSay('Please enter a valid 6-digit Singapore zipcode.');
+    if (!isValidLocationValue(text)) {
+      await assistantSay(invalidLocationMessage());
       return;
     }
-    state.zipcode = normalizeZipcode(text);
+    state.zipcode = normalizeLocationValue(text);
     saveDraft();
     await assistantSay(flowMessage('zipcode_complete'));
-    setStage('vehicle_type');
+    await openStage(nextStageAfter('zipcode'), { prompt: false });
   }
 
   async function handleVehicleTypeInput(text) {
@@ -1073,8 +1287,7 @@
     state.current_vehicle_type = value;
     saveDraft();
     await assistantSay(flowMessage('vehicle_type_complete'));
-    renderDatesPanel();
-    setStage('dates');
+    await openStage(nextStageAfter('vehicle_type'), { prompt: false });
   }
 
   async function handleContractCompanyInput(text) {
@@ -1087,8 +1300,7 @@
     state.contract_company = value;
     saveDraft();
     await assistantSay(flowMessage('contract_company_complete'));
-    renderContractExpiryPanel();
-    setStage('contract_expiry');
+    await openStage(nextStageAfter('contract_company'), { prompt: false });
   }
 
   async function handleFleetInput(text) {
@@ -1205,8 +1417,12 @@
       return;
     }
     setComposerEnabled(true);
-    setStage('name');
-    await assistantBatch(flowMessages('intro_messages'));
+    if ((activeStageSequence[0] || 'name') === 'name') {
+      setStage('name');
+      await assistantBatch(flowMessages('intro_messages'));
+      return;
+    }
+    await openStage(activeStageSequence[0], { prompt: true });
   }
 
   async function resumeFromDraft(savedState) {
@@ -1219,78 +1435,63 @@
       `Welcome back${state.first_name ? `, ${state.first_name}` : ''}. I’ve restored your enquiry on this device.`
     ]);
 
-    if (!state.full_name) {
-      setStage('name');
-      await assistantSay(flowMessage('name_reprompt'));
+    if (stageEnabled('name') && !state.full_name) {
+      await openStage('name', { prompt: true });
       return;
     }
-    if (!state.phone) {
-      setStage('phone');
-      await assistantSay(flowMessage('phone_reprompt'));
+    if (stageEnabled('phone') && !state.phone) {
+      await openStage('phone', { prompt: true });
       return;
     }
-    if (!state.email) {
-      setStage('email');
-      await assistantSay(flowMessage('email_reprompt'));
+    if (stageEnabled('email') && !state.email) {
+      await openStage('email', { prompt: true });
       return;
     }
-    if (!state.zipcode) {
-      setStage('zipcode');
-      await assistantSay(flowMessage('zipcode_reprompt'));
+    if (stageEnabled('zipcode') && !state.zipcode) {
+      await openStage('zipcode', { prompt: true });
       return;
     }
-    if (!state.current_vehicle_type) {
-      setStage('vehicle_type');
-      await assistantSay(flowMessage('vehicle_type_reprompt'));
+    if (stageEnabled('vehicle_type') && !state.current_vehicle_type) {
+      await openStage('vehicle_type', { prompt: true });
       return;
     }
-    if (!state.start_date || !state.end_date) {
-      setStage('dates');
-      await assistantSay('Please choose your from and to dates.');
-      renderDatesPanel();
+    if (stageEnabled('dates') && (!state.start_date || !state.end_date)) {
+      await openStage('dates', { prompt: true });
       return;
     }
-    completePanel('dates');
-    if (!state.interest_form_type) {
-      setStage('interest_type');
-      await assistantSay(flowMessage('interest_type_prompt'));
-      renderInterestTypePanel();
+    if (stageEnabled('dates')) completePanel('dates');
+    if (stageEnabled('interest_type') && !state.interest_form_type) {
+      await openStage('interest_type', { prompt: true });
       return;
     }
-    completePanel('interest_type');
-    if (!state.contract_company) {
-      setStage('contract_company');
-      await assistantSay(flowMessage('contract_company_reprompt'));
+    if (stageEnabled('interest_type')) completePanel('interest_type');
+    if (stageEnabled('contract_company') && !state.contract_company) {
+      await openStage('contract_company', { prompt: true });
       return;
     }
-    if (!state.contract_expiry) {
-      setStage('contract_expiry');
-      await assistantSay(flowMessage('contract_company_complete'));
-      renderContractExpiryPanel();
+    if (stageEnabled('contract_expiry') && !state.contract_expiry) {
+      await openStage('contract_expiry', { prompt: true });
       return;
     }
-    completePanel('contract_expiry');
-    if (!state.citizen_status) {
-      setStage('citizen_status');
-      await assistantSay(flowMessage('citizen_prompt'));
-      renderCitizenPanel();
+    if (stageEnabled('contract_expiry')) completePanel('contract_expiry');
+    if (stageEnabled('citizen_status') && !state.citizen_status) {
+      await openStage('citizen_status', { prompt: true });
       return;
     }
-    completePanel('citizen');
+    if (stageEnabled('citizen_status')) completePanel('citizen');
     if (!state.car_id) {
-      setStage('fleet');
       await assistantSay('Let’s continue with the available fleet.');
-      await renderFleetPanel();
+      await openStage('fleet', { prompt: false });
       return;
     }
     await renderFleetPanel();
     completePanel('fleet');
-    renderQuotePanel();
+    if (stageEnabled('quote')) renderQuotePanel();
     if (state.stage === 'quote') {
       setStage('quote');
       return;
     }
-    completePanel('quote');
+    if (stageEnabled('quote')) completePanel('quote');
     renderReviewPanel();
     if (state.stage === 'review') {
       setStage('review');

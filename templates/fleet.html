@@ -6,7 +6,7 @@
   <title>{{ company_name }} Fleet</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
-<body data-default-biz-id="{{ default_biz_id }}" data-business-slug="{{ current_business_slug }}">
+<body data-default-biz-id="{{ default_biz_id }}" data-business-slug="{{ current_business_slug }}" style="--accent: {{ theme_accent }}; --accent-deep: {{ theme_accent_deep }}; --accent-rgb: {{ theme_accent_rgb }}; --border: {{ theme_border }}; --bg: {{ theme_bg }}; --surface-soft: {{ theme_soft }};">
   <main class="container">
     <nav class="nav">
       <div class="logo veep-logo" aria-label="{{ company_name }}">

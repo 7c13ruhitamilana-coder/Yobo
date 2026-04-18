@@ -14,6 +14,7 @@ processing_fee = 50
 vat_rate = 0.09
 
 [businesses.veep.flow]
+stage_sequence = ["name", "phone", "email", "zipcode", "vehicle_type", "dates", "interest_type", "contract_company", "contract_expiry", "citizen_status", "fleet", "quote", "review", "summary"]
 intro_messages = [
   "Hello I'm {assistant_name}! Your AI-powered booking assistant.",
   "Please enter your full name."
@@ -58,15 +59,22 @@ dashboard_branch = "Main Branch"
 dashboard_reference = "secondbrand-main"
 
 [businesses.secondbrand.flow]
+stage_sequence = ["name", "phone", "email", "zipcode", "dates", "fleet", "quote", "review", "summary"]
 intro_messages = [
   "Hello! I'm {assistant_name}, your {company_name} enquiry guide.",
+  "Please tell me your full name."
 ]
 name_reprompt = "Let's get some basic details before we start. Please tell me your full name "
 name_complete = "Thanks {first_name}. What is your mobile number?"
+phone_reprompt = "Please enter your mobile number."
 phone_complete = "What is your email address?"
 email_reprompt = "Please enter the email address for this enquiry."
 email_complete = "What is your pick up address? or would you like to pick up the car yourself?"
-vehicle_type_complete = "Let's lock in the dates first. Please choose your from and to dates."
+zipcode_label = "Pick-up details"
+zipcode_placeholder = "Type your pick-up address or self-pickup..."
+zipcode_validation = "text"
+zipcode_reprompt = "What is your pick up address, or would you like to pick up the car yourself?"
+zipcode_complete = "Let's lock in the dates first. Please choose your from and to dates."
 fleet_intro = "Perfect. I'll now show the fleet available for those dates, and I can recommend one if you want."
 quote_intro = "Here's the current estimate for this enquiry."
 review_intro = "Let's review the enquiry details before you submit."

@@ -92,6 +92,41 @@ DEFAULT_COMPANY = {
 }
 
 
+def _normalize_hex_color(value: str, fallback: str) -> str:
+    candidate = str(value or "").strip().lstrip("#")
+    if len(candidate) == 3 and re.fullmatch(r"[0-9a-fA-F]{3}", candidate):
+        candidate = "".join(ch * 2 for ch in candidate)
+    if not re.fullmatch(r"[0-9a-fA-F]{6}", candidate):
+        candidate = fallback.lstrip("#")
+    return f"#{candidate.lower()}"
+
+
+def _mix_hex_color(color: str, target: str, ratio: float) -> str:
+    ratio = max(0.0, min(1.0, ratio))
+    source = _normalize_hex_color(color, "#f59a3c").lstrip("#")
+    blend = _normalize_hex_color(target, "#ffffff").lstrip("#")
+    channels = []
+    for index in (0, 2, 4):
+        source_value = int(source[index:index + 2], 16)
+        blend_value = int(blend[index:index + 2], 16)
+        mixed = round(source_value * (1 - ratio) + blend_value * ratio)
+        channels.append(f"{mixed:02x}")
+    return f"#{''.join(channels)}"
+
+
+def build_theme_vars(accent: str) -> dict[str, str]:
+    resolved = _normalize_hex_color(accent, DEFAULT_COMPANY["accent"])
+    rgb = [str(int(resolved[index:index + 2], 16)) for index in (1, 3, 5)]
+    return {
+        "theme_accent": _mix_hex_color(resolved, "#ffffff", 0.72),
+        "theme_accent_deep": resolved,
+        "theme_accent_rgb": ", ".join(rgb),
+        "theme_border": _mix_hex_color(resolved, "#ffffff", 0.82),
+        "theme_bg": _mix_hex_color(resolved, "#ffffff", 0.95),
+        "theme_soft": _mix_hex_color(resolved, "#ffffff", 0.88),
+    }
+
+
 def load_secrets() -> dict[str, Any]:
     path = Path(__file__).with_name("secrets.toml")
     if not path.exists():
@@ -233,6 +268,7 @@ def build_business_page_context() -> dict[str, Any]:
     dashboard = get_dashboard_config()
     resolved_biz_id = str(config.get("biz_id") or "").strip()
     resolved_slug = str(config.get("slug") or "").strip()
+    theme = build_theme_vars(str(config.get("accent") or DEFAULT_COMPANY["accent"]))
 
     def href(path: str) -> str:
         if resolved_slug:
@@ -256,6 +292,7 @@ def build_business_page_context() -> dict[str, Any]:
         "currency": str(config.get("currency") or DEFAULT_COMPANY["currency"]),
         "processing_fee": str(config.get("processing_fee") or DEFAULT_COMPANY["processing_fee"]),
         "vat_rate": str(config.get("vat_rate") or DEFAULT_COMPANY["vat_rate"]),
+        **theme,
         "has_dashboard_config": "true" if dashboard.get("url") else "false",
         "dashboard_provider": dashboard.get("provider", ""),
         "assistant_flow_config": config.get("flow") if isinstance(config.get("flow"), dict) else {},
