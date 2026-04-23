@@ -127,6 +127,49 @@ def build_theme_vars(accent: str) -> dict[str, str]:
     }
 
 
+def build_location_routing_config() -> dict[str, Any]:
+    businesses, _ = load_business_profiles()
+    explicit_slug = bool(request.view_args and request.view_args.get("slug"))
+    explicit_biz = bool(request.args.get("biz_id", "").strip())
+    forced_default_slug = str(os.getenv("DEFAULT_BUSINESS_SLUG") or "").strip().lower()
+    enabled = not explicit_slug and not explicit_biz and not forced_default_slug and len(businesses) > 1
+
+    market_defaults = {
+        "SGD": {
+            "market_city": "Singapore",
+            "market_country_codes": ["SG"],
+            "market_timezones": ["Asia/Singapore"],
+        },
+        "AED": {
+            "market_city": "Dubai",
+            "market_country_codes": ["AE"],
+            "market_timezones": ["Asia/Dubai"],
+        },
+    }
+
+    targets: list[dict[str, Any]] = []
+    for slug, config in businesses.items():
+        currency = str(config.get("currency") or "").strip().upper()
+        fallback = market_defaults.get(currency, {})
+        country_codes = config.get("market_country_codes") or fallback.get("market_country_codes") or []
+        timezones = config.get("market_timezones") or fallback.get("market_timezones") or []
+        market_city = str(config.get("market_city") or fallback.get("market_city") or "").strip()
+        targets.append(
+            {
+                "slug": slug,
+                "currency": currency,
+                "market_city": market_city,
+                "country_codes": [str(code).strip().upper() for code in country_codes if str(code).strip()],
+                "timezones": [str(tz).strip() for tz in timezones if str(tz).strip()],
+            }
+        )
+
+    return {
+        "enabled": enabled,
+        "targets": targets,
+    }
+
+
 def load_secrets() -> dict[str, Any]:
     path = Path(__file__).with_name("secrets.toml")
     if not path.exists():
@@ -266,11 +309,15 @@ def requested_biz_id() -> str:
 def build_business_page_context() -> dict[str, Any]:
     config = get_company_config()
     dashboard = get_dashboard_config()
+    routing = build_location_routing_config()
     resolved_biz_id = str(config.get("biz_id") or "").strip()
     resolved_slug = str(config.get("slug") or "").strip()
     theme = build_theme_vars(str(config.get("accent") or DEFAULT_COMPANY["accent"]))
+    use_generic_paths = bool(routing.get("enabled"))
 
     def href(path: str) -> str:
+        if use_generic_paths:
+            return path
         if resolved_slug:
             if path == "/":
                 return f"/b/{resolved_slug}/"
@@ -296,6 +343,7 @@ def build_business_page_context() -> dict[str, Any]:
         "has_dashboard_config": "true" if dashboard.get("url") else "false",
         "dashboard_provider": dashboard.get("provider", ""),
         "assistant_flow_config": config.get("flow") if isinstance(config.get("flow"), dict) else {},
+        "location_routing_config": routing,
         "home_href": href("/"),
         "details_href": href("/details"),
         "assistant_href": href("/assistant"),

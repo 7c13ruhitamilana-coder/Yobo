@@ -48,6 +48,8 @@
       </form>
     </section>
   </main>
+  <script id="locationRoutingConfig" type="application/json">{{ location_routing_config|tojson }}</script>
+  <script src="{{ url_for('static', filename='location_routing.js') }}"></script>
   <script id="assistantFlowConfig" type="application/json">{{ assistant_flow_config|tojson }}</script>
   <script src="{{ url_for('static', filename='assistant_flow.js') }}"></script>
 </body>

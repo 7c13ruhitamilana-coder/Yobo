@@ -34,5 +34,7 @@
     </section>
   </main>
 {% include 'partials/yobo_chat.html' %}
+  <script id="locationRoutingConfig" type="application/json">{{ location_routing_config|tojson }}</script>
+  <script src="{{ url_for('static', filename='location_routing.js') }}"></script>
 </body>
 </html>

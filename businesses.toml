@@ -12,6 +12,9 @@ currency = "SGD"
 hero_image = "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop"
 processing_fee = 50
 vat_rate = 0.09
+market_city = "Singapore"
+market_country_codes = ["SG"]
+market_timezones = ["Asia/Singapore"]
 
 [businesses.veep.flow]
 stage_sequence = ["name", "phone", "email", "zipcode", "vehicle_type", "dates", "interest_type", "contract_company", "contract_expiry", "citizen_status", "fleet", "quote", "review", "summary"]
@@ -51,6 +54,9 @@ currency = "AED"
 hero_image = "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop"
 processing_fee = 50
 vat_rate = 0.09
+market_city = "Dubai"
+market_country_codes = ["AE"]
+market_timezones = ["Asia/Dubai"]
 dashboard_provider = "moiboo"
 dashboard_url = "https://dashboard-irzp.onrender.com/dashboard"
 dashboard_label = "Second Brand Moiboo Dashboard"
