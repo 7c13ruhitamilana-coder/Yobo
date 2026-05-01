@@ -15,6 +15,10 @@
   const statConfirmed = document.getElementById('statConfirmed');
   const statPending = document.getElementById('statPending');
   const statPaid = document.getElementById('statPaid');
+  const inviteForm = document.getElementById('inviteForm');
+  const inviteFullName = document.getElementById('inviteFullName');
+  const inviteEmail = document.getElementById('inviteEmail');
+  const inviteRole = document.getElementById('inviteRole');
 
   const state = {
     items: [],
@@ -75,7 +79,7 @@
 
         <div class="row-main">
           <strong>${escapeHtml(item.customer_name)}</strong>
-          <span>${escapeHtml(item.city || item.location || 'Customer booking')}</span>
+          <span>${escapeHtml(item.city || item.location || 'Customer request')}</span>
         </div>
 
         <div class="row-main">
@@ -85,12 +89,12 @@
 
         <div class="date-cell">
           <strong>${escapeHtml(formatDate(item.from_date))}</strong>
-          <span>Pickup date</span>
+          <span>Start date</span>
         </div>
 
         <div class="date-cell">
           <strong>${escapeHtml(formatDate(item.to_date))}</strong>
-          <span>Return date</span>
+          <span>End date</span>
         </div>
 
         <div class="row-main">
@@ -100,7 +104,7 @@
 
         <div class="length-cell">
           <strong>${escapeHtml(item.booking_length_label)}</strong>
-          <span>Total AED ${escapeHtml(item.total_price)}</span>
+          <span>Total ${escapeHtml(item.total_price)}</span>
         </div>
 
         <div>
@@ -155,7 +159,7 @@
 
   function updateModelOptions(models) {
     const current = carModelFilter.value;
-    carModelFilter.innerHTML = '<option value="">All models</option>';
+    carModelFilter.innerHTML = '<option value="">All items</option>';
     models.forEach((model) => {
       const option = document.createElement('option');
       option.value = model;
@@ -267,6 +271,31 @@
     return data.state || {};
   }
 
+  async function createInvite(payload) {
+    const response = await fetch(config.invitesUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.toLowerCase().includes('application/json')) {
+      if (response.redirected && response.url) {
+        window.location.href = response.url;
+        return {};
+      }
+      throw new Error('The dashboard returned an unexpected page instead of JSON. Please sign in again.');
+    }
+    const data = await response.json();
+    if (response.status === 401 && data.redirect_to) {
+      window.location.href = data.redirect_to;
+      return {};
+    }
+    if (!response.ok || !data.ok) {
+      throw new Error(data.error || 'Unable to save employee access.');
+    }
+    return data;
+  }
+
   function bindRowEvents() {
     rowsContainer.querySelectorAll('.data-row').forEach((row) => {
       const bookingId = row.dataset.bookingId;
@@ -311,6 +340,35 @@
       });
 
       paymentSelect.dataset.previous = paymentSelect.value;
+    });
+  }
+
+  if (inviteForm) {
+    inviteForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      inviteForm.classList.add('loading');
+      try {
+        const result = await createInvite({
+          full_name: inviteFullName.value.trim(),
+          email: inviteEmail.value.trim(),
+          role: inviteRole.value,
+        });
+        inviteForm.reset();
+        if (inviteRole) {
+          const firstOption = inviteRole.querySelector('option[selected]') || inviteRole.querySelector('option');
+          if (firstOption) {
+            inviteRole.value = firstOption.value;
+          }
+        }
+        setFeedback(
+          `Access saved for ${result.invite.email}. Share this registration page with them: ${result.register_url}`,
+          'success'
+        );
+      } catch (error) {
+        setFeedback(error.message || 'Unable to save employee access.', 'error');
+      } finally {
+        inviteForm.classList.remove('loading');
+      }
     });
   }
 

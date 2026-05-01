@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Bookings Dashboard{% endblock %}
+{% block title %}Bookings & Appointments Dashboard{% endblock %}
 {% block body_class %}dashboard-page{% endblock %}
 
 {% block content %}
@@ -8,18 +8,18 @@
     <header class="dashboard-topbar">
       <div class="title-block">
         <p class="eyebrow">Employee control center</p>
-        <h1>Bookings Dashboard</h1>
+        <h1>Bookings & Appointments Dashboard</h1>
         <p class="subtitle">
-          Search customers, filter by dates or car model, review payment status,
-          and confirm bookings for {{ employee.company_name or employee.biz_id }}.
+          Search customers, filter by dates or booked item, review payment status,
+          and confirm bookings or appointments for {{ employee.company_name or employee.biz_id }}.
         </p>
       </div>
 
       <div class="topbar-side">
         <div class="employee-chip">
           <span class="chip-label">Signed in as</span>
-          <strong>{{ employee.full_name or employee.username }}</strong>
-          <span class="chip-meta">{{ employee.company_name or employee.biz_id }}</span>
+          <strong>{{ employee.full_name or employee.email }}</strong>
+          <span class="chip-meta">{{ employee.company_name or employee.biz_id }} · {{ employee.role|title }}</span>
         </div>
         <a class="logout-link" href="{{ url_for('logout') }}">Log out</a>
       </div>
@@ -55,7 +55,7 @@
         <input
           id="searchInput"
           type="search"
-          placeholder="Search by customer, phone, location, payment status, or vehicle"
+          placeholder="Search by customer, phone, location, payment status, or booked item"
         />
       </div>
 
@@ -71,9 +71,9 @@
         </label>
 
         <label class="field-group compact">
-          <span>Car model</span>
+          <span>Booked item</span>
           <select id="carModelFilter">
-            <option value="">All models</option>
+            <option value="">All items</option>
           </select>
         </label>
 
@@ -103,6 +103,50 @@
 
     <div id="feedbackBanner" class="feedback-banner hidden"></div>
 
+    {% if can_manage_access %}
+      <section class="toolbar-panel invite-panel">
+        <div class="invite-copy">
+          <p class="meta-label">Account access</p>
+          <h2>Invite a new employee</h2>
+          <p class="invite-help">
+            Save the employee's work email here, then share the registration page so they can create
+            their own password safely.
+          </p>
+          <a class="register-link" href="{{ register_url }}" target="_blank" rel="noreferrer">{{ register_url }}</a>
+        </div>
+
+        <form id="inviteForm" class="invite-form">
+          <label class="field-group compact">
+            <span>Employee name</span>
+            <input id="inviteFullName" type="text" placeholder="Operations coordinator" required />
+          </label>
+
+          <label class="field-group compact">
+            <span>Work email</span>
+            <input id="inviteEmail" type="email" placeholder="employee@company.com" required />
+          </label>
+
+          <label class="field-group compact">
+            <span>Role</span>
+            <select id="inviteRole">
+              {% if employee.role == 'owner' %}
+                <option value="admin">Admin</option>
+                <option value="manager">Manager</option>
+                <option value="staff" selected>Staff</option>
+              {% elif employee.role == 'admin' %}
+                <option value="manager">Manager</option>
+                <option value="staff" selected>Staff</option>
+              {% elif employee.role == 'manager' %}
+                <option value="staff" selected>Staff</option>
+              {% endif %}
+            </select>
+          </label>
+
+          <button type="submit" class="primary-button invite-button">Save access invite</button>
+        </form>
+      </section>
+    {% endif %}
+
     <section class="table-panel">
       <div class="table-meta">
         <div>
@@ -118,7 +162,7 @@
           <span>Phone Number</span>
           <span>From Date</span>
           <span>To Date</span>
-          <span>Car Model</span>
+          <span>Booked Item</span>
           <span>Booked For</span>
           <span>Payment Status</span>
           <span>Confirmed</span>
@@ -137,7 +181,8 @@
   <script>
     window.dashboardConfig = {
       bookingsUrl: "{{ url_for('api_dashboard_bookings') }}",
-      updateUrlTemplate: "{{ url_for('api_update_booking_state', booking_id='__BOOKING_ID__') }}"
+      updateUrlTemplate: "{{ url_for('api_update_booking_state', booking_id='__BOOKING_ID__') }}",
+      invitesUrl: "{{ url_for('api_create_employee_invite') }}"
     };
   </script>
   <script src="{{ url_for('static', filename='dashboard.js') }}"></script>

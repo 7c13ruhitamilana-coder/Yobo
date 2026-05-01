@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Create Employee Account{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block content %}
+  <main class="login-shell">
+    <section class="login-hero">
+      <p class="eyebrow">Invite-based signup</p>
+      <h1>Create your employee dashboard account.</h1>
+      <p class="hero-copy">
+        Ask a manager to invite your work email first. After that, you can create your own password
+        and sign in safely through Supabase Auth.
+      </p>
+      <div class="hero-orbit orbit-one"></div>
+      <div class="hero-orbit orbit-two"></div>
+    </section>
+
+    <section class="login-panel">
+      <div class="login-card">
+        <p class="eyebrow">Employee setup</p>
+        <h2>Create account</h2>
+        <p class="panel-copy">Only invited work emails can create a dashboard account.</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-stack">
+              {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form method="post" class="login-form">
+          <label class="field-group">
+            <span>Full name</span>
+            <input
+              type="text"
+              name="full_name"
+              autocomplete="name"
+              value="{{ full_name }}"
+              placeholder="Employee name"
+              required
+            />
+          </label>
+
+          <label class="field-group">
+            <span>Work email</span>
+            <input
+              type="email"
+              name="email"
+              autocomplete="email"
+              value="{{ email }}"
+              placeholder="team@yourcompany.com"
+              required
+            />
+          </label>
+
+          <label class="field-group">
+            <span>Password</span>
+            <input
+              type="password"
+              name="password"
+              autocomplete="new-password"
+              placeholder="At least 10 characters"
+              required
+            />
+          </label>
+
+          <label class="field-group">
+            <span>Confirm password</span>
+            <input
+              type="password"
+              name="confirm_password"
+              autocomplete="new-password"
+              placeholder="Re-enter password"
+              required
+            />
+          </label>
+
+          <p class="field-hint">Use a strong password with letters and numbers.</p>
+          <button type="submit" class="primary-button">Create account</button>
+        </form>
+
+        <div class="auth-links">
+          <a href="{{ url_for('login') }}">Back to sign in</a>
+          <a href="{{ url_for('recover') }}">Need password help?</a>
+        </div>
+      </div>
+    </section>
+  </main>
+{% endblock %}

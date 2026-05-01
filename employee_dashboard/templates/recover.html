@@ -1,16 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Employee Login{% endblock %}
+{% block title %}Recover Employee Access{% endblock %}
 {% block body_class %}login-page{% endblock %}
 
 {% block content %}
   <main class="login-shell">
     <section class="login-hero">
-      <p class="eyebrow">Separate employee website</p>
-      <h1>Bookings dashboard for your rental team.</h1>
+      <p class="eyebrow">Password recovery</p>
+      <h1>Reset your employee dashboard password.</h1>
       <p class="hero-copy">
-        Employees sign in with their work email and password. Managers can invite new staff safely,
-        and invited employees create their own dashboard account without manual password hashes.
+        Enter the invited work email on your dashboard account and Supabase will send the recovery email.
       </p>
       <div class="hero-orbit orbit-one"></div>
       <div class="hero-orbit orbit-two"></div>
@@ -18,9 +17,9 @@
 
     <section class="login-panel">
       <div class="login-card">
-        <p class="eyebrow">Employee access</p>
-        <h2>Sign in to the dashboard</h2>
-        <p class="panel-copy">Use the email address your manager invited for employee dashboard access.</p>
+        <p class="eyebrow">Recover access</p>
+        <h2>Send recovery email</h2>
+        <p class="panel-copy">Use the same work email your manager invited for dashboard access.</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
@@ -45,23 +44,12 @@
             />
           </label>
 
-          <label class="field-group">
-            <span>Password</span>
-            <input
-              type="password"
-              name="password"
-              autocomplete="current-password"
-              placeholder="Enter password"
-              required
-            />
-          </label>
-
-          <button type="submit" class="primary-button">Open dashboard</button>
+          <button type="submit" class="primary-button">Send recovery email</button>
         </form>
 
         <div class="auth-links">
-          <a href="{{ url_for('register') }}">Create employee account</a>
-          <a href="{{ url_for('recover') }}">Forgot password?</a>
+          <a href="{{ url_for('login') }}">Back to sign in</a>
+          <a href="{{ url_for('register') }}">Create account</a>
         </div>
       </div>
     </section>
