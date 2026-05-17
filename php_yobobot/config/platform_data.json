@@ -1,0 +1,615 @@
+{
+  "default_company": {
+    "company_name": "Veep",
+    "brand_wordmark": "VEEP",
+    "assistant_name": "Yobo",
+    "hero_title": "Find Your Next Drive With Veep.",
+    "hero_subtitle": "Browse the fleet, build a quick SGD estimate, and submit your interest with Yobo.",
+    "accent": "#f59a3c",
+    "currency": "SGD",
+    "hero_image": "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop",
+    "processing_fee": 50,
+    "vat_rate": 0.09,
+    "booking_mode": "rental",
+    "browse_label": "",
+    "browse_title": "",
+    "browse_subtitle": "",
+    "assistant_cta_label": "",
+    "home_cta_label": "",
+    "biz_id": "",
+    "slug": "",
+    "service_catalog": [],
+    "flow": {}
+  },
+  "demo_fleet": [
+    {
+      "id": 1,
+      "make": "Ferrari",
+      "model": "Roma",
+      "color": "Cherry Red",
+      "price_per_day": 18500,
+      "available": true,
+      "photo_url": "https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      "id": 2,
+      "make": "Lamborghini",
+      "model": "Huracan EVO",
+      "color": "Sunset Orange",
+      "price_per_day": 21000,
+      "available": true,
+      "photo_url": "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?q=80&w=1200&auto=format&fit=crop"
+    },
+    {
+      "id": 3,
+      "make": "Porsche",
+      "model": "911 Carrera",
+      "color": "Jet Black",
+      "price_per_day": 14000,
+      "available": true,
+      "photo_url": "https://images.unsplash.com/photo-1544636331-e26879cd4d9b?q=80&w=1200&auto=format&fit=crop"
+    }
+  ],
+  "demo_insurance": [
+    {
+      "id": 1,
+      "name": "Essential Cover",
+      "description": "Basic protection for everyday city driving.",
+      "price_per_day": 250
+    },
+    {
+      "id": 2,
+      "name": "Premium Shield",
+      "description": "Extended coverage with reduced excess and roadside support.",
+      "price_per_day": 450
+    },
+    {
+      "id": 3,
+      "name": "Luxury Guard",
+      "description": "Maximum coverage tailored for premium vehicles.",
+      "price_per_day": 650
+    }
+  ],
+  "customer_detail_fields": [
+    {
+      "key": "email",
+      "stage": "email",
+      "modes": [
+        "rental",
+        "service"
+      ],
+      "default": {
+        "rental": true,
+        "service": true
+      },
+      "labels": {
+        "rental": "Email",
+        "service": "Email"
+      },
+      "description": "Collect an email address for confirmations and follow-up."
+    },
+    {
+      "key": "zipcode",
+      "stage": "zipcode",
+      "modes": [
+        "rental",
+        "service"
+      ],
+      "default": {
+        "rental": true,
+        "service": true
+      },
+      "labels": {
+        "rental": "Pincode / Area",
+        "service": "Area / Zip Code"
+      },
+      "description": "Capture the customer area or pincode before the team follows up."
+    },
+    {
+      "key": "current_vehicle_type",
+      "stage": "vehicle_type",
+      "modes": [
+        "rental",
+        "service"
+      ],
+      "default": {
+        "rental": true,
+        "service": true
+      },
+      "labels": {
+        "rental": "Current Vehicle Type",
+        "service": "Vehicle Make and Model"
+      },
+      "description": "Ask what vehicle the customer currently drives or needs help with."
+    },
+    {
+      "key": "interest_form_type",
+      "stage": "interest_type",
+      "modes": [
+        "rental"
+      ],
+      "default": {
+        "rental": true
+      },
+      "labels": {
+        "rental": "Interest Form Type"
+      },
+      "description": "Ask whether the enquiry is daily, weekly, monthly, or yearly."
+    },
+    {
+      "key": "contract_company",
+      "stage": "contract_company",
+      "modes": [
+        "rental",
+        "service"
+      ],
+      "default": {
+        "rental": true,
+        "service": true
+      },
+      "labels": {
+        "rental": "Current Contract Company",
+        "service": "Issue / Service Details"
+      },
+      "description": "Capture the current contract company or the workshop issue details."
+    },
+    {
+      "key": "contract_expiry",
+      "stage": "contract_expiry",
+      "modes": [
+        "rental"
+      ],
+      "default": {
+        "rental": true
+      },
+      "labels": {
+        "rental": "Current Contract Expiry"
+      },
+      "description": "Ask when the customer's current contract expires."
+    },
+    {
+      "key": "citizen_status",
+      "stage": "citizen_status",
+      "modes": [
+        "rental"
+      ],
+      "default": {
+        "rental": true
+      },
+      "labels": {
+        "rental": "Citizen / Resident Status"
+      },
+      "description": "Capture citizen or resident status when the business needs it."
+    }
+  ],
+  "customer_field_label_keys": {
+    "zipcode": "zipcode_label",
+    "vehicle_type": "vehicle_type_label",
+    "interest_type": "interest_type_label",
+    "contract_company": "contract_company_label",
+    "contract_expiry": "contract_expiry_label",
+    "citizen_status": "citizen_status_label"
+  },
+  "base_stage_sequences": {
+    "rental": [
+      "name",
+      "phone",
+      "email",
+      "zipcode",
+      "vehicle_type",
+      "dates",
+      "interest_type",
+      "contract_company",
+      "contract_expiry",
+      "citizen_status",
+      "fleet",
+      "quote",
+      "review",
+      "summary"
+    ],
+    "service": [
+      "name",
+      "phone",
+      "email",
+      "zipcode",
+      "vehicle_type",
+      "contract_company",
+      "dates",
+      "fleet",
+      "review",
+      "summary"
+    ]
+  },
+  "marketing_plans": [
+    {
+      "slug": "free",
+      "name": "Free",
+      "price": "Free",
+      "description": "A fast way to launch your first Yobobot booking site on a Yobobot subdomain.",
+      "highlight": "Launch mode",
+      "features": [
+        "Free subdomain on xxx.yobobot.in",
+        "Basic onboarding flow",
+        "Standard booking bot",
+        "Sample dashboard access"
+      ]
+    },
+    {
+      "slug": "professional",
+      "name": "Professional",
+      "price": "799",
+      "price_suffix": "per user / month",
+      "description": "For growing businesses that want more control, integrations, and team usage.",
+      "highlight": "Most popular",
+      "featured": true,
+      "features": [
+        "Per-business integrations",
+        "Availability calendar tools",
+        "Branding controls",
+        "Operations dashboard"
+      ]
+    },
+    {
+      "slug": "business",
+      "name": "Business",
+      "price": "1299",
+      "price_suffix": "per user / month",
+      "description": "For larger fleets and multi-employee teams that need deeper workflow support.",
+      "highlight": "Operations suite",
+      "features": [
+        "Advanced business workflows",
+        "More automation and integrations",
+        "Expanded team access",
+        "Priority rollout support"
+      ]
+    },
+    {
+      "slug": "enterprise",
+      "name": "Enterprise",
+      "price": "Contact us",
+      "description": "For custom rollouts, advanced controls, larger fleets, and white-glove onboarding.",
+      "highlight": "Custom",
+      "features": [
+        "Custom rollout planning",
+        "Advanced domain options",
+        "Tailored integrations",
+        "Dedicated support path"
+      ]
+    }
+  ],
+  "integration_guides": [
+    {
+      "slug": "google-calendar",
+      "title": "Google Calendar",
+      "status": "Workspace Setup",
+      "tag": "Scheduling",
+      "description": "Sync booking events with each business's own Google Calendar so teams can avoid clashes and review upcoming reservations.",
+      "summary": "Connect the business Google account, choose the working calendar, and let Yobobot use it for bookings and scheduling visibility.",
+      "benefits": [
+        "Keep booking events in the business calendar",
+        "Reduce scheduling conflicts for staff",
+        "Support per-business workspace connections"
+      ],
+      "steps": [
+        "Open the onboarding or integrations area and choose Google Calendar.",
+        "Sign in with the business Google account that should own the calendar.",
+        "Approve calendar access and select the working calendar for that business.",
+        "Save the connection so Yobobot can sync bookings and availability workflows."
+      ]
+    },
+    {
+      "slug": "google-meet",
+      "title": "Google Meet",
+      "status": "Workspace Setup",
+      "tag": "Video",
+      "description": "Attach Meet links when a business wants consultation calls, premium walkthroughs, or workshop appointment discussions.",
+      "summary": "Connect the business Google workspace, decide which workflows need a Meet link, and let Yobobot attach it during booking or follow-up flows.",
+      "benefits": [
+        "Auto-create meeting links for demos or consultations",
+        "Keep calls tied to the business workspace",
+        "Useful for workshop and support follow-ups"
+      ],
+      "steps": [
+        "Choose Google Meet during onboarding or from the integrations page.",
+        "Authorize the business Google workspace that should create meeting links.",
+        "Select when Yobobot should generate Meet links, such as demos or consultation calls.",
+        "Review the saved connection inside the dashboard before going live."
+      ]
+    },
+    {
+      "slug": "zoom",
+      "title": "Zoom",
+      "status": "Workspace Setup",
+      "tag": "Video",
+      "description": "Let each business connect its own Zoom workspace for customer calls, walkthroughs, or premium support appointments.",
+      "summary": "Authorize the business Zoom account, choose the host behavior, and control how Yobobot creates meeting links for the team.",
+      "benefits": [
+        "Per-business Zoom ownership",
+        "Meeting links for support and demos",
+        "Clear workspace separation between customers"
+      ],
+      "steps": [
+        "Open Zoom setup from onboarding or the integrations section.",
+        "Sign in with the business Zoom account that should host meetings.",
+        "Approve the workspace connection and review the default host settings.",
+        "Save the integration so Yobobot can attach Zoom links when the workflow needs them."
+      ]
+    },
+    {
+      "slug": "gpay",
+      "title": "GPay",
+      "status": "Payment Setup",
+      "tag": "Payments",
+      "description": "Configure business-specific Google Pay details so each company can show its own payment instructions and receive deposits separately.",
+      "summary": "Add the business UPI or payment identity, save the payment instructions, and use them during onboarding, deposits, and follow-up flows.",
+      "benefits": [
+        "Separate payment setup for every business",
+        "Useful for deposits or confirmation payments",
+        "Fits the onboarding and dashboard setup flow"
+      ],
+      "steps": [
+        "Open the GPay setup step during onboarding or from the dashboard integrations area.",
+        "Add the business payment identity, such as the UPI or business payment label.",
+        "Review how payment instructions should appear to customers during booking follow-up.",
+        "Save the payment configuration so the business uses its own payment details."
+      ]
+    }
+  ],
+  "businesses": {
+    "veep": {
+      "company_name": "Veep",
+      "brand_wordmark": "VEEP",
+      "assistant_name": "Veepy",
+      "hero_title": "Find Your Next Drive With Veep.",
+      "hero_subtitle": "Browse the fleet, build a quick SGD estimate, and submit your interest with Yobo.",
+      "accent": "#f59a3c",
+      "currency": "SGD",
+      "hero_image": "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop",
+      "processing_fee": 50,
+      "vat_rate": 0.09,
+      "booking_mode": "rental",
+      "browse_label": "",
+      "browse_title": "",
+      "browse_subtitle": "",
+      "assistant_cta_label": "",
+      "home_cta_label": "",
+      "biz_id": "1b082033-6521-4d04-9c0b-44604fd65993",
+      "slug": "veep",
+      "service_catalog": [],
+      "flow": {
+        "stage_sequence": [
+          "name",
+          "phone",
+          "email",
+          "zipcode",
+          "vehicle_type",
+          "dates",
+          "interest_type",
+          "contract_company",
+          "contract_expiry",
+          "citizen_status",
+          "fleet",
+          "quote",
+          "review",
+          "summary"
+        ],
+        "intro_messages": [
+          "Hello I'm {assistant_name}! Your AI-powered booking assistant.",
+          "Please enter your full name."
+        ],
+        "name_reprompt": "Please enter your full name.",
+        "name_complete": "Nice to meet you {first_name}. What is your mobile number?",
+        "phone_reprompt": "Please enter your mobile number next.",
+        "phone_complete": "What is your email address?",
+        "email_reprompt": "Please enter your email address next.",
+        "email_complete": "What is your 6-digit Singapore zipcode?",
+        "zipcode_reprompt": "Please enter your 6-digit Singapore zipcode.",
+        "zipcode_complete": "What is your current vehicle type?",
+        "vehicle_type_reprompt": "Please tell me your current vehicle type.",
+        "vehicle_type_complete": "How long would you like the enquiry to run for? Please choose your from and to dates.",
+        "interest_type_prompt": "What should I note as your interest form type?",
+        "contract_company_reprompt": "Please tell me your current contract company.",
+        "contract_company_complete": "Please select your current contract expiry date.",
+        "contract_expiry_complete": "Are you a Singapore citizen?",
+        "citizen_prompt": "Please choose one of these options: Yes, Yes Permanent Resident, or No.",
+        "fleet_intro": "Great! Now it's time for you to choose your dream car! If you'd like, I could suggest a car tailored to your needs.",
+        "quote_intro": "Here's your estimated quote.",
+        "review_intro": "Before you submit, please review your enquiry details.",
+        "completion_message": "Thank you. One of our consultants will contact you soon to continue your {company_name} enquiry."
+      },
+      "market_city": "Singapore",
+      "market_country_codes": [
+        "SG"
+      ],
+      "market_timezones": [
+        "Asia/Singapore"
+      ]
+    },
+    "secondbrand": {
+      "company_name": "Second Brand",
+      "brand_wordmark": "SECOND",
+      "assistant_name": "Yobo",
+      "hero_title": "Find Your Next Drive With Second Brand.",
+      "hero_subtitle": "Browse the fleet and submit your enquiry in minutes.",
+      "accent": "#ffdfdf",
+      "currency": "SGD",
+      "hero_image": "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1800&auto=format&fit=crop",
+      "processing_fee": 50,
+      "vat_rate": 0.09,
+      "booking_mode": "rental",
+      "browse_label": "",
+      "browse_title": "",
+      "browse_subtitle": "",
+      "assistant_cta_label": "",
+      "home_cta_label": "",
+      "biz_id": "383eaf74-bf46-4851-9d69-d8af4423588c",
+      "slug": "secondbrand",
+      "service_catalog": [],
+      "flow": {
+        "stage_sequence": [
+          "name",
+          "phone",
+          "email",
+          "zipcode",
+          "dates",
+          "fleet",
+          "quote",
+          "review",
+          "summary"
+        ],
+        "intro_messages": [
+          "Hello! I'm {assistant_name}, your {company_name} enquiry guide.",
+          "Please tell me your full name."
+        ],
+        "name_reprompt": "Let's get some basic details before we start. Please tell me your full name ",
+        "name_complete": "Thanks {first_name}. What is your mobile number?",
+        "phone_reprompt": "Please enter your mobile number.",
+        "phone_complete": "What is your email address?",
+        "email_reprompt": "Please enter the email address for this enquiry.",
+        "email_complete": "What is your pincode?",
+        "zipcode_label": "Pincode",
+        "zipcode_placeholder": "Type your pincode...",
+        "zipcode_validation": "zipcode",
+        "zipcode_reprompt": "Please enter your pincode.",
+        "zipcode_complete": "Let's lock in the dates first. Please choose your from and to dates.",
+        "fleet_intro": "Perfect. I'll now show the fleet available for those dates, and I can recommend one if you want.",
+        "quote_intro": "Here's the current estimate for this enquiry.",
+        "review_intro": "Let's review the enquiry details before you submit.",
+        "completion_message": "Thank you. The {company_name} team will review this enquiry and get back to you shortly."
+      },
+      "market_city": "Singapore",
+      "market_country_codes": [
+        "SG"
+      ],
+      "market_timezones": [
+        "Asia/Singapore"
+      ]
+    },
+    "mechanicappointments": {
+      "company_name": "Mechanic Appointments Template",
+      "brand_wordmark": "GARAGE",
+      "assistant_name": "Yobo",
+      "hero_title": "Book Your Next Garage Visit In Minutes.",
+      "hero_subtitle": "Choose a service, share your vehicle details, and request a mechanic appointment through Yobo.",
+      "accent": "#c86f38",
+      "currency": "USD",
+      "hero_image": "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?q=80&w=1800&auto=format&fit=crop",
+      "processing_fee": 0,
+      "vat_rate": 0,
+      "booking_mode": "service",
+      "browse_label": "Services",
+      "browse_title": "Choose Your Service",
+      "browse_subtitle": "Browse the available services here. To request an appointment, continue with Yobo.",
+      "assistant_cta_label": "Book Appointment",
+      "home_cta_label": "Book an appointment",
+      "biz_id": "REPLACE_WITH_MECHANIC_BIZ_ID",
+      "slug": "mechanicappointments",
+      "service_catalog": [
+        {
+          "id": "oil-change",
+          "name": "Oil Change",
+          "description": "Fresh oil, filter replacement, and a quick inspection.",
+          "photo_url": "https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?q=80&w=1200&auto=format&fit=crop",
+          "price": 0,
+          "price_label": "Price confirmed by the garage",
+          "duration_label": "45 min"
+        },
+        {
+          "id": "brake-check",
+          "name": "Brake Inspection",
+          "description": "Brake pad, rotor, and fluid check with follow-up recommendations.",
+          "photo_url": "https://images.unsplash.com/photo-1615906655593-ad0386982a0f?q=80&w=1200&auto=format&fit=crop",
+          "price": 0,
+          "price_label": "Price confirmed by the garage",
+          "duration_label": "60 min"
+        },
+        {
+          "id": "battery-check",
+          "name": "Battery Check",
+          "description": "Battery health test, charging check, and replacement advice if needed.",
+          "photo_url": "https://images.unsplash.com/photo-1607861716497-e65ab29fc7ac?q=80&w=1200&auto=format&fit=crop",
+          "price": 0,
+          "price_label": "Price confirmed by the garage",
+          "duration_label": "30 min"
+        },
+        {
+          "id": "diagnostic",
+          "name": "General Diagnostic",
+          "description": "Tell us the issue and the garage will inspect the vehicle.",
+          "photo_url": "https://images.unsplash.com/photo-1632823471565-1ecdf98f2c1a?q=80&w=1200&auto=format&fit=crop",
+          "price": 0,
+          "price_label": "Price confirmed by the garage",
+          "duration_label": "60 min"
+        }
+      ],
+      "flow": {
+        "stage_sequence": [
+          "name",
+          "phone",
+          "email",
+          "zipcode",
+          "vehicle_type",
+          "contract_company",
+          "dates",
+          "fleet",
+          "review",
+          "summary"
+        ],
+        "pricing_enabled": false,
+        "intro_messages": [
+          "Hello! I'm {assistant_name}, your {company_name} booking assistant.",
+          "Please tell me your full name."
+        ],
+        "name_reprompt": "Please tell me your full name.",
+        "name_complete": "Thanks {first_name}. What is your mobile number?",
+        "phone_reprompt": "Please enter your mobile number.",
+        "phone_complete": "What is your email address?",
+        "email_reprompt": "Please enter your email address.",
+        "email_complete": "Which area, zip code, or postcode should we note for this appointment?",
+        "zipcode_label": "Area / Zip Code",
+        "zipcode_placeholder": "Type your area or zip code...",
+        "zipcode_validation": "text",
+        "zipcode_reprompt": "Please enter your area, zip code, or postcode.",
+        "zipcode_complete": "What vehicle should the garage expect?",
+        "vehicle_type_label": "Vehicle Make and Model",
+        "vehicle_type_placeholder": "e.g. 2019 Toyota Camry",
+        "vehicle_type_reprompt": "Please tell me your vehicle make and model.",
+        "vehicle_type_complete": "Please describe the service you need or the issue you're noticing.",
+        "contract_company_label": "Issue / Service Details",
+        "contract_company_placeholder": "e.g. Brake squeal when stopping",
+        "contract_company_reprompt": "Please describe the service you need or the issue you're noticing.",
+        "contract_company_complete": "Please choose your preferred appointment date and time.",
+        "dates_prompt": "Please choose your preferred appointment date and time.",
+        "dates_title": "Preferred appointment",
+        "dates_note": "Choose the best date and time for your appointment request.",
+        "dates_invalid": "Please choose your preferred appointment date.",
+        "appointment_date_label": "Appointment Date",
+        "time_slot_label": "Preferred Time",
+        "time_slot_invalid": "Please choose your preferred appointment time.",
+        "time_slots": [
+          "09:00 AM",
+          "10:00 AM",
+          "11:00 AM",
+          "01:00 PM",
+          "02:00 PM",
+          "03:00 PM",
+          "04:00 PM"
+        ],
+        "fleet_intro": "Thanks. Please choose the service you'd like to request.",
+        "review_intro": "Let's review your appointment request before you send it.",
+        "summary_note": "Your appointment request will be shared with the garage team together with the details above.",
+        "summary_submit_label": "Request Appointment",
+        "completion_message": "Thank you. The {company_name} team will review your appointment request and contact you to confirm it.",
+        "missing_biz": "This {company_name} appointment link is missing business details. Please use the correct business link before continuing."
+      },
+      "market_city": "Your City",
+      "market_country_codes": [
+        "US"
+      ],
+      "market_timezones": [
+        "America/New_York"
+      ]
+    }
+  },
+  "default_slug": "veep"
+}
