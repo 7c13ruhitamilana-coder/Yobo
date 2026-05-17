@@ -25,6 +25,7 @@ final class YobobotApp
     private string $rootDir;
     private string $viewsDir;
     private string $publicDir;
+    private string $dataDir;
     private string $portalUsersPath;
     private string $brandingPath;
     private string $secretsPath;
@@ -39,10 +40,10 @@ final class YobobotApp
         $this->rootDir = rtrim($rootDir, DIRECTORY_SEPARATOR);
         $this->viewsDir = $this->rootDir . DIRECTORY_SEPARATOR . 'views';
         $this->publicDir = $this->rootDir . DIRECTORY_SEPARATOR . 'public';
-        $projectRoot = dirname($this->rootDir);
-        $this->portalUsersPath = $projectRoot . DIRECTORY_SEPARATOR . 'portal_users.json';
-        $this->brandingPath = $projectRoot . DIRECTORY_SEPARATOR . 'dashboard_branding.json';
-        $this->secretsPath = $projectRoot . DIRECTORY_SEPARATOR . 'secrets.toml';
+        $this->dataDir = $this->resolveDataDir();
+        $this->portalUsersPath = $this->resolveDataFilePath(['PORTAL_USERS_PATH', 'YOBOBOT_PORTAL_USERS_PATH'], 'portal_users.json');
+        $this->brandingPath = $this->resolveDataFilePath(['BRANDING_STORE_PATH', 'YOBOBOT_BRANDING_STORE_PATH'], 'dashboard_branding.json');
+        $this->secretsPath = $this->resolveSecretsPath();
         $this->platformDataPath = $this->rootDir . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'platform_data.json';
         $this->dashboardApp = new DashboardApp($this->rootDir);
     }
@@ -863,6 +864,9 @@ final class YobobotApp
             'cwd' => getcwd(),
             'app_file' => __FILE__,
             'port_env' => getenv('PORT') ?: '',
+            'data_dir' => $this->dataDir,
+            'portal_users_path' => $this->portalUsersPath,
+            'branding_path' => $this->brandingPath,
             'secrets_path' => $this->secretsPath,
             'secrets_file_exists' => is_file($this->secretsPath),
             'secrets_keys' => array_keys($this->loadSecrets()),
@@ -2962,22 +2966,15 @@ final class YobobotApp
 
     private function getSupabaseUrl(): ?string
     {
-        $secrets = $this->loadSecrets();
-        $value = getenv('SUPABASE_URL') ?: ($secrets['SUPABASE_URL'] ?? null);
-        $value = is_string($value) ? trim($value) : null;
-        return $value !== '' ? $value : null;
+        return $this->envValue('SUPABASE_URL');
     }
 
     private function getSupabaseServiceKey(): ?string
     {
-        $secrets = $this->loadSecrets();
         $candidates = [
-            getenv('SUPABASE_SERVICE_KEY') ?: null,
-            getenv('SUPABASE_KEY') ?: null,
-            $secrets['SUPABASE_SERVICE_KEY'] ?? null,
-            $secrets['SUPABASE_KEY'] ?? null,
-            getenv('SUPABASE_ANON_KEY') ?: null,
-            $secrets['SUPABASE_ANON_KEY'] ?? null,
+            $this->envValue('SUPABASE_SERVICE_KEY'),
+            $this->envValue('SUPABASE_KEY'),
+            $this->envValue('SUPABASE_ANON_KEY'),
         ];
         foreach ($candidates as $candidate) {
             if (is_string($candidate) && trim($candidate) !== '') {
@@ -2989,9 +2986,8 @@ final class YobobotApp
 
     private function getGeminiConfig(): array
     {
-        $secrets = $this->loadSecrets();
-        $apiKey = getenv('GEMINI_API_KEY') ?: ($secrets['GEMINI_API_KEY'] ?? null);
-        $model = getenv('GEMINI_MODEL') ?: ($secrets['GEMINI_MODEL'] ?? 'gemini-2.5-flash');
+        $apiKey = $this->envValue('GEMINI_API_KEY');
+        $model = $this->envValue('GEMINI_MODEL') ?? 'gemini-2.5-flash';
         $model = trim((string) $model);
         if (str_starts_with($model, 'models/')) {
             $model = substr($model, strlen('models/'));
@@ -3001,14 +2997,10 @@ final class YobobotApp
 
     private function getDefaultBizId(): string
     {
-        $secrets = $this->loadSecrets();
         $candidates = [
-            getenv('SUPABASE_BIZ_ID') ?: null,
-            getenv('BIZ_ID') ?: null,
-            getenv('biz_id') ?: null,
-            $secrets['SUPABASE_BIZ_ID'] ?? null,
-            $secrets['BIZ_ID'] ?? null,
-            $secrets['biz_id'] ?? null,
+            $this->envValue('SUPABASE_BIZ_ID'),
+            $this->envValue('BIZ_ID'),
+            $this->envValue('biz_id'),
         ];
         foreach ($candidates as $candidate) {
             if (is_string($candidate) && trim($candidate) !== '') {
@@ -3074,6 +3066,7 @@ final class YobobotApp
     private function savePortalStore(array $store): void
     {
         $payload = ['users' => is_array($store['users'] ?? null) ? $store['users'] : []];
+        $this->ensureParentDirectory($this->portalUsersPath);
         file_put_contents($this->portalUsersPath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . PHP_EOL);
     }
 
@@ -3168,6 +3161,97 @@ final class YobobotApp
         }
         $this->secrets = $data;
         return $data;
+    }
+
+    private function envValue(string $key): ?string
+    {
+        $runtimeValue = $this->runtimeEnvValue($key);
+        if ($runtimeValue !== null) {
+            return $runtimeValue;
+        }
+        $secrets = $this->loadSecrets();
+        return isset($secrets[$key]) && trim((string) $secrets[$key]) !== '' ? trim((string) $secrets[$key]) : null;
+    }
+
+    private function resolveDataDir(): string
+    {
+        $override = $this->runtimeEnvValue('YOBOBOT_DATA_DIR') ?? $this->runtimeEnvValue('APP_DATA_DIR');
+        if ($override !== null) {
+            return rtrim($override, DIRECTORY_SEPARATOR);
+        }
+
+        $legacyProjectRoot = dirname($this->rootDir);
+        $legacyCandidates = [
+            $legacyProjectRoot . DIRECTORY_SEPARATOR . 'portal_users.json',
+            $legacyProjectRoot . DIRECTORY_SEPARATOR . 'dashboard_branding.json',
+            $legacyProjectRoot . DIRECTORY_SEPARATOR . 'secrets.toml',
+        ];
+        foreach ($legacyCandidates as $candidate) {
+            if (is_file($candidate)) {
+                return $legacyProjectRoot;
+            }
+        }
+
+        return $this->rootDir . DIRECTORY_SEPARATOR . 'storage';
+    }
+
+    private function resolveDataFilePath(array $envKeys, string $filename): string
+    {
+        foreach ($envKeys as $envKey) {
+            $value = $this->runtimeEnvValue($envKey);
+            if ($value !== null) {
+                return $value;
+            }
+        }
+        return $this->dataDir . DIRECTORY_SEPARATOR . $filename;
+    }
+
+    private function resolveSecretsPath(): string
+    {
+        $override = $this->runtimeEnvValue('YOBOBOT_SECRETS_PATH') ?? $this->runtimeEnvValue('SECRETS_TOML_PATH');
+        if ($override !== null) {
+            return $override;
+        }
+
+        $legacyPath = dirname($this->rootDir) . DIRECTORY_SEPARATOR . 'secrets.toml';
+        if (is_file($legacyPath)) {
+            return $legacyPath;
+        }
+
+        $localPath = $this->rootDir . DIRECTORY_SEPARATOR . 'secrets.toml';
+        if (is_file($localPath)) {
+            return $localPath;
+        }
+
+        return $this->dataDir . DIRECTORY_SEPARATOR . 'secrets.toml';
+    }
+
+    private function ensureParentDirectory(string $path): void
+    {
+        $directory = dirname($path);
+        if ($directory === '' || $directory === '.' || is_dir($directory)) {
+            return;
+        }
+        if (!mkdir($directory, 0775, true) && !is_dir($directory)) {
+            throw new RuntimeException('Unable to create data directory: ' . $directory);
+        }
+    }
+
+    private function runtimeEnvValue(string $key): ?string
+    {
+        $value = getenv($key);
+        if (is_string($value) && trim($value) !== '') {
+            return trim($value);
+        }
+        $serverValue = $_SERVER[$key] ?? null;
+        if (is_string($serverValue) && trim($serverValue) !== '') {
+            return trim($serverValue);
+        }
+        $envValue = $_ENV[$key] ?? null;
+        if (is_string($envValue) && trim($envValue) !== '') {
+            return trim($envValue);
+        }
+        return null;
     }
 
     private function marketingPlans(): array

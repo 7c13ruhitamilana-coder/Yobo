@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use PhpYobobot\YobobotApp;
+use PhpEmployeeDashboard\DashboardApp;
 
 error_reporting(E_ALL);
 ini_set('display_errors', '0');
@@ -18,32 +18,15 @@ if (PHP_SAPI === 'cli-server') {
     }
 }
 
-function yobobot_is_https_request(): bool
-{
-    $forwardedProto = strtolower(trim((string) (explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''), 2)[0] ?? '')));
-    if ($forwardedProto === 'https') {
-        return true;
-    }
-    return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-}
-
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'secure' => yobobot_is_https_request() || filter_var(getenv('SESSION_COOKIE_SECURE') ?: '0', FILTER_VALIDATE_BOOLEAN),
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
 session_start();
 
 require_once dirname(__DIR__) . '/src/DashboardApp.php';
-require_once dirname(__DIR__) . '/src/YobobotApp.php';
 
 try {
-    $app = new YobobotApp(dirname(__DIR__));
+    $app = new DashboardApp(dirname(__DIR__));
     $app->handle();
 } catch (\Throwable $exception) {
-    error_log('[php_yobobot] ' . $exception->getMessage() . "\n" . $exception->getTraceAsString());
+    error_log('[php_employee_dashboard] ' . $exception->getMessage() . "\n" . $exception->getTraceAsString());
 
     $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
     $isApiRequest = str_starts_with($requestPath, '/api/');
@@ -53,16 +36,16 @@ try {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'ok' => false,
-            'error' => 'Yobobot request failed: ' . $exception->getMessage(),
+            'error' => 'Dashboard request failed: ' . $exception->getMessage(),
         ], JSON_UNESCAPED_SLASHES);
         return;
     }
 
     http_response_code(500);
     header('Content-Type: text/html; charset=utf-8');
-    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Yobobot Error</title></head><body>';
-    echo '<h1>Yobobot Error</h1>';
-    echo '<p>The PHP Yobobot app hit an unexpected error.</p>';
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Dashboard Error</title></head><body>';
+    echo '<h1>Dashboard Error</h1>';
+    echo '<p>The employee dashboard hit an unexpected error.</p>';
     echo '<pre>' . htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8') . '</pre>';
     echo '</body></html>';
 }

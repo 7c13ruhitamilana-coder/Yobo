@@ -92,19 +92,14 @@ final class DashboardApp
 
     private string $rootDir;
     private string $viewsDir;
-    private string $dataDir;
     private string $brandingStorePath;
-    private string $secretsPath;
     private string $customDomainUpgradeUrl = 'https://yobobot.in/pricing';
-    private ?array $secrets = null;
 
     public function __construct(string $rootDir)
     {
         $this->rootDir = rtrim($rootDir, DIRECTORY_SEPARATOR);
         $this->viewsDir = $this->rootDir . DIRECTORY_SEPARATOR . 'views';
-        $this->dataDir = $this->resolveDataDir();
-        $this->brandingStorePath = $this->resolveDataFilePath(['BRANDING_STORE_PATH', 'YOBOBOT_BRANDING_STORE_PATH'], 'dashboard_branding.json');
-        $this->secretsPath = $this->resolveSecretsPath();
+        $this->brandingStorePath = dirname($this->rootDir) . DIRECTORY_SEPARATOR . 'dashboard_branding.json';
     }
 
     public function handle(): void
@@ -884,28 +879,20 @@ final class DashboardApp
 
     private function absoluteUrl(string $path): string
     {
-        $baseUrl = $this->envValue('DASHBOARD_BASE_URL') ?? $this->envValue('APP_BASE_URL');
-        if ($baseUrl !== null) {
-            return rtrim($baseUrl, '/') . $path;
-        }
-        $scheme = $this->requestScheme();
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? '127.0.0.1:8600';
         return $scheme . '://' . $host . $path;
     }
 
     private function loadSecrets(): array
     {
-        if ($this->secrets !== null) {
-            return $this->secrets;
+        $path = dirname($this->rootDir) . DIRECTORY_SEPARATOR . 'secrets.toml';
+        if (!is_file($path)) {
+            return [];
         }
-        if (!is_file($this->secretsPath)) {
-            $this->secrets = [];
-            return $this->secrets;
-        }
-        $rows = file($this->secretsPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        $rows = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         if (!is_array($rows)) {
-            $this->secrets = [];
-            return $this->secrets;
+            return [];
         }
         $values = [];
         foreach ($rows as $row) {
@@ -920,15 +907,14 @@ final class DashboardApp
             $value = trim($value, "\"' ");
             $values[$key] = $value;
         }
-        $this->secrets = $values;
-        return $this->secrets;
+        return $values;
     }
 
     private function envValue(string $key): ?string
     {
-        $runtimeValue = $this->runtimeEnvValue($key);
-        if ($runtimeValue !== null) {
-            return $runtimeValue;
+        $value = getenv($key);
+        if (is_string($value) && $value !== '') {
+            return $value;
         }
         $secrets = $this->loadSecrets();
         return isset($secrets[$key]) && $secrets[$key] !== '' ? (string) $secrets[$key] : null;
@@ -1434,7 +1420,6 @@ final class DashboardApp
     private function saveBrandingStore(array $store): void
     {
         $payload = ['businesses' => is_array($store['businesses'] ?? null) ? $store['businesses'] : []];
-        $this->ensureParentDirectory($this->brandingStorePath);
         file_put_contents($this->brandingStorePath, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
 
@@ -1442,95 +1427,6 @@ final class DashboardApp
     {
         $normalized = strtolower($this->text($slug));
         return $normalized === '' ? '' : 'https://' . $normalized . '.yobobot.in';
-    }
-
-    private function resolveDataDir(): string
-    {
-        $override = $this->runtimeEnvValue('YOBOBOT_DATA_DIR') ?? $this->runtimeEnvValue('APP_DATA_DIR');
-        if ($override !== null) {
-            return rtrim($override, DIRECTORY_SEPARATOR);
-        }
-
-        $legacyProjectRoot = dirname($this->rootDir);
-        $legacyCandidates = [
-            $legacyProjectRoot . DIRECTORY_SEPARATOR . 'dashboard_branding.json',
-            $legacyProjectRoot . DIRECTORY_SEPARATOR . 'secrets.toml',
-        ];
-        foreach ($legacyCandidates as $candidate) {
-            if (is_file($candidate)) {
-                return $legacyProjectRoot;
-            }
-        }
-
-        return $this->rootDir . DIRECTORY_SEPARATOR . 'storage';
-    }
-
-    private function resolveDataFilePath(array $envKeys, string $filename): string
-    {
-        foreach ($envKeys as $envKey) {
-            $value = $this->runtimeEnvValue($envKey);
-            if ($value !== null) {
-                return $value;
-            }
-        }
-        return $this->dataDir . DIRECTORY_SEPARATOR . $filename;
-    }
-
-    private function resolveSecretsPath(): string
-    {
-        $override = $this->runtimeEnvValue('YOBOBOT_SECRETS_PATH') ?? $this->runtimeEnvValue('SECRETS_TOML_PATH');
-        if ($override !== null) {
-            return $override;
-        }
-
-        $legacyPath = dirname($this->rootDir) . DIRECTORY_SEPARATOR . 'secrets.toml';
-        if (is_file($legacyPath)) {
-            return $legacyPath;
-        }
-
-        $localPath = $this->rootDir . DIRECTORY_SEPARATOR . 'secrets.toml';
-        if (is_file($localPath)) {
-            return $localPath;
-        }
-
-        return $this->dataDir . DIRECTORY_SEPARATOR . 'secrets.toml';
-    }
-
-    private function ensureParentDirectory(string $path): void
-    {
-        $directory = dirname($path);
-        if ($directory === '' || $directory === '.' || is_dir($directory)) {
-            return;
-        }
-        if (!mkdir($directory, 0775, true) && !is_dir($directory)) {
-            throw new RuntimeException('Unable to create data directory: ' . $directory);
-        }
-    }
-
-    private function requestScheme(): string
-    {
-        $forwarded = strtolower(trim(explode(',', (string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''), 2)[0] ?? ''));
-        if ($forwarded === 'https') {
-            return 'https';
-        }
-        return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    }
-
-    private function runtimeEnvValue(string $key): ?string
-    {
-        $value = getenv($key);
-        if (is_string($value) && trim($value) !== '') {
-            return trim($value);
-        }
-        $serverValue = $_SERVER[$key] ?? null;
-        if (is_string($serverValue) && trim($serverValue) !== '') {
-            return trim($serverValue);
-        }
-        $envValue = $_ENV[$key] ?? null;
-        if (is_string($envValue) && trim($envValue) !== '') {
-            return trim($envValue);
-        }
-        return null;
     }
 
     private function generateInviteToken(): string
